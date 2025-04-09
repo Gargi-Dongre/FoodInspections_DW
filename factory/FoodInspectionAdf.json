@@ -1,0 +1,9 @@
+{
+	"name": "FoodInspectionAdf",
+	"location": "eastus",
+	"identity": {
+		"type": "SystemAssigned",
+		"principalId": "cd484db8-759f-4e12-a640-d118d7de2f3a",
+		"tenantId": "a8eec281-aaa3-4dae-ac9b-9a398b9215e7"
+	}
+}

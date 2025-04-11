@@ -52,7 +52,7 @@
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false) ~> source1",
-				"source1 derive(Violations = split(trim(regexReplace(regexReplace(regexReplace(Violations, '[\\\\p{C}]', ''), '[\\\\r\\\\n\\\\t]+', ' '), '[ ]+', ' ')), '|')\r",
+				"source1 derive(Violations = split(trim(regexReplace(regexReplace(regexReplace(toString(Violations), '[\\\\p{C}]', ''), '[\\\\r\\\\n\\\\t]+', ' '), '[ ]+', ' ')), '|')\r",
 				") ~> derivedColumn1",
 				"derivedColumn1 foldDown(unroll(Violations),",
 				"     mapColumn(",

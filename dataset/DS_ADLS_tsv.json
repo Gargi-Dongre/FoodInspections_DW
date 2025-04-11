@@ -22,10 +22,11 @@
 					"value": "@dataset().FileName",
 					"type": "Expression"
 				},
-				"fileSystem": {
+				"folderPath": {
 					"value": "@dataset().FolderName",
 					"type": "Expression"
-				}
+				},
+				"fileSystem": "bronze"
 			},
 			"columnDelimiter": "\t",
 			"escapeChar": "\\",

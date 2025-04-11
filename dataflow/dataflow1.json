@@ -1,0 +1,67 @@
+{
+	"name": "dataflow1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_ADLS_tsv",
+						"type": "DatasetReference"
+					},
+					"name": "source1"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
+			"transformations": [
+				{
+					"name": "derivedColumn1"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          {Inspection ID} as integer,",
+				"          {DBA Name} as string,",
+				"          {AKA Name} as string,",
+				"          {License #} as double,",
+				"          {Facility Type} as string,",
+				"          Risk as string,",
+				"          Address as string,",
+				"          City as string,",
+				"          State as string,",
+				"          Zip as double,",
+				"          {Inspection Date} as date,",
+				"          {Inspection Type} as string,",
+				"          Results as string,",
+				"          Violations as string,",
+				"          Latitude as string,",
+				"          Longitude as string,",
+				"          Location as string",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     ignoreNoFilesFound: false) ~> source1",
+				"source1 derive(Violations = regexReplace(Violations, '\\\\t', ' ')\r",
+				") ~> derivedColumn1",
+				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     skipDuplicateMapInputs: true,",
+				"     skipDuplicateMapOutputs: true,",
+				"     stageInsert: true) ~> sink1"
+			]
+		}
+	}
+}

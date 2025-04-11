@@ -62,7 +62,7 @@
 				"        '\\n', ' '),",
 				"      '|', '; '),",
 				"    '\"', ''),",
-				"  '|')",
+				"  '; ')",
 				") ~> derivedColumn1",
 				"derivedColumn1 foldDown(unroll(Violations),",
 				"     mapColumn(",

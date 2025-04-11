@@ -1472,7 +1472,7 @@
 						"type": "DataFlowReference",
 						"datasetParameters": {
 							"source1": {
-								"FileName": "Chicago_2021-2023.tsv"
+								"FileName": "Chicago_2021-2022.tsv"
 							},
 							"sink1": {
 								"SchemaName": "STG",

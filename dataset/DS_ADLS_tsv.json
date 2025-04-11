@@ -25,8 +25,7 @@
 				"folderPath": {
 					"value": "@dataset().FolderName",
 					"type": "Expression"
-				},
-				"fileSystem": "bronze"
+				}
 			},
 			"columnDelimiter": "\t",
 			"escapeChar": "\\",

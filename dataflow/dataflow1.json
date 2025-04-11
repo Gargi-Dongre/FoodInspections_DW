@@ -58,9 +58,26 @@
 				"     updateable:false,",
 				"     upsertable:false,",
 				"     format: 'table',",
-				"     skipDuplicateMapInputs: true,",
-				"     skipDuplicateMapOutputs: true,",
-				"     stageInsert: true) ~> sink1"
+				"     stageInsert: true,",
+				"     mapColumn(",
+				"          INSPECTION_ID = {Inspection ID},",
+				"          DBA_NAME = {DBA Name},",
+				"          AKA_NAME = {AKA Name},",
+				"          LICENSE_NO = {License #},",
+				"          FACILITY_TYPE = {Facility Type},",
+				"          RISK = Risk,",
+				"          ADDRESS = Address,",
+				"          CITY = City,",
+				"          STATE = State,",
+				"          ZIP = Zip,",
+				"          INSPECTION_DATE = {Inspection Date},",
+				"          INSPECTION_TYPE = {Inspection Type},",
+				"          RESULTS = Results,",
+				"          VIOLATIONS = Violations,",
+				"          LATITUDE = Latitude,",
+				"          LONGITUDE = Longitude,",
+				"          LOCATION = Location",
+				"     )) ~> sink1"
 			]
 		}
 	}

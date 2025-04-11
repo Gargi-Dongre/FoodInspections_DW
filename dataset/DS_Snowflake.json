@@ -1,5 +1,5 @@
 {
-	"name": "SnowflakeTable1",
+	"name": "DS_Snowflake",
 	"properties": {
 		"linkedServiceName": {
 			"referenceName": "Snowflake_LS",
@@ -15,6 +15,16 @@
 		},
 		"annotations": [],
 		"type": "SnowflakeV2Table",
-		"schema": []
+		"schema": [],
+		"typeProperties": {
+			"schema": {
+				"value": "@dataset().SchemaName",
+				"type": "Expression"
+			},
+			"table": {
+				"value": "@dataset().TableName",
+				"type": "Expression"
+			}
+		}
 	}
 }

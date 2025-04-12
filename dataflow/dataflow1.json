@@ -9,7 +9,7 @@
 						"referenceName": "DS_ADLS_tsv",
 						"type": "DatasetReference"
 					},
-					"name": "source1"
+					"name": "source"
 				}
 			],
 			"sinks": [
@@ -18,15 +18,15 @@
 						"referenceName": "DS_Snowflake",
 						"type": "DatasetReference"
 					},
-					"name": "sink1"
+					"name": "sink"
 				}
 			],
 			"transformations": [
 				{
-					"name": "derivedColumn1"
+					"name": "derivedColumn"
 				},
 				{
-					"name": "flatten1"
+					"name": "flatten"
 				}
 			],
 			"scriptLines": [
@@ -51,8 +51,8 @@
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     ignoreNoFilesFound: false) ~> source1",
-				"source1 derive(Violations = split(",
+				"     ignoreNoFilesFound: false) ~> source",
+				"source derive(Violations = split(",
 				"  trim(",
 				"    replace(",
 				"      replace(",
@@ -72,8 +72,8 @@
 				"  ),",
 				"  '|'",
 				")",
-				") ~> derivedColumn1",
-				"derivedColumn1 foldDown(unroll(Violations),",
+				") ~> derivedColumn",
+				"derivedColumn foldDown(unroll(Violations),",
 				"     mapColumn(",
 				"          {Inspection ID},",
 				"          {DBA Name},",
@@ -94,8 +94,8 @@
 				"          Location",
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
-				"     skipDuplicateMapOutputs: false) ~> flatten1",
-				"flatten1 sink(allowSchemaDrift: true,",
+				"     skipDuplicateMapOutputs: false) ~> flatten",
+				"flatten sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     deletable:false,",
 				"     insertable:true,",
@@ -121,7 +121,7 @@
 				"          LATITUDE = Latitude,",
 				"          LONGITUDE = Longitude,",
 				"          LOCATION = Location",
-				"     )) ~> sink1"
+				"     )) ~> sink"
 			]
 		}
 	}

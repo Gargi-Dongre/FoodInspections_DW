@@ -20,7 +20,7 @@
 						"type": "DataFlowReference",
 						"datasetParameters": {
 							"source1": {
-								"FileName": "cleansed_file1.tsv"
+								"FileName": "cleaned_file1.tsv"
 							},
 							"sink1": {
 								"SchemaName": "STG",

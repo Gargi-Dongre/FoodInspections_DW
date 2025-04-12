@@ -18,13 +18,23 @@
 					"dataflow": {
 						"referenceName": "DF_CLEAN_CHICAGO",
 						"type": "DataFlowReference",
+						"parameters": {
+							"FName": "'Chicago_2021-2022_quoted.tsv'",
+							"Silver_FName": "'Chicago_2021-2022.parquet'"
+						},
 						"datasetParameters": {
 							"source": {
 								"FileName": "Chicago_2021-2022_quoted.tsv"
 							},
 							"sink": {
-								"SchemaName": "STG",
-								"TableName": "STG_CHICAGO"
+								"FileName": "Chicago_2021-2022.parquet"
+							}
+						},
+						"linkedServiceParameters": {
+							"sink": {
+								"schemaLinkedService": {
+									"FileName": "Chicago_2021-2022.parquet"
+								}
 							}
 						}
 					},
@@ -36,6 +46,14 @@
 				}
 			}
 		],
+		"parameters": {
+			"InputFileName": {
+				"type": "string"
+			},
+			"OutputFileName": {
+				"type": "string"
+			}
+		},
 		"annotations": []
 	}
 }

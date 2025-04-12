@@ -29,13 +29,6 @@
 							"sink": {
 								"FileName": "Chicago_2022-2023.parquet"
 							}
-						},
-						"linkedServiceParameters": {
-							"sink": {
-								"schemaLinkedService": {
-									"FileName": "Chicago_2022-2023.parquet"
-								}
-							}
 						}
 					},
 					"compute": {

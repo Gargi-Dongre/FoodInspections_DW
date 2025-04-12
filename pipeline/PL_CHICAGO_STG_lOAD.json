@@ -19,8 +19,16 @@
 						"referenceName": "DF_CLEAN_CHICAGO",
 						"type": "DataFlowReference",
 						"parameters": {
-							"FName": "'Chicago_2025-present_quoted.tsv'",
-							"Silver_FName": "'Chicago_2025-present.parquet'"
+							"FName": "'Chicago_2021-2022_quoted.tsv'",
+							"Silver_FName": "'Chicago_2021-2022.parquet'"
+						},
+						"datasetParameters": {
+							"sourceBronze": {
+								"FileName": "Chicago_2021-2022_quoted.tsv"
+							},
+							"sinkSilver": {
+								"FileName": "Chicago_2021-2022.parquet"
+							}
 						}
 					},
 					"compute": {
@@ -295,7 +303,7 @@
 						"referenceName": "DS_ADLS_parquet",
 						"type": "DatasetReference",
 						"parameters": {
-							"FileName": "Chicago_2025-present.parquet"
+							"FileName": "Chicago_2021-2022.parquet"
 						}
 					}
 				],

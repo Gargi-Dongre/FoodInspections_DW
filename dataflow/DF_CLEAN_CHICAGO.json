@@ -30,6 +30,9 @@
 				},
 				{
 					"name": "flatten1"
+				},
+				{
+					"name": "derivedColumn2"
 				}
 			],
 			"scriptLines": [
@@ -116,15 +119,12 @@
 				"          Location = iif(isNull(Location) || trim(Location) == '', '(0,0)', trim(Location)),",
 				"          FileName = $FName,",
 				"          LoadDate = currentUTC()) ~> derivedColumn",
-				"flatten1 derive(Violations = iif(\r",
-				"  Violations == 'NA\"',\r",
-				"  'NA',\r",
-				"  regexReplace(\r",
+				"flatten1 derive(Violations = regexReplace(\r",
 				"    regexReplace(Violations, '^\\\"', ''),\r",
 				"    '(?i)(- Comments:.*)',\r",
 				"    ''\r",
 				"  )\r",
-				"),",
+				",",
 				"          Comments = iif(\r",
 				"    regexMatch(Violations, 'Comments:'),\r",
 				"    regexReplace(regexReplace(Violations, '^.*Comments:', ''), '\\\"$', ''),\r",
@@ -154,7 +154,8 @@
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> flatten1",
-				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"derivedColumn1 derive(Violations = replace(Violations, 'NA\"', 'NA')) ~> derivedColumn2",
+				"derivedColumn2 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'parquet',",
 				"     partitionFileNames:[($Silver_FName)],",

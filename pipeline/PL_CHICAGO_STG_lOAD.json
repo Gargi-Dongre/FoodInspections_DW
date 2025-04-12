@@ -24,7 +24,7 @@
 						},
 						"datasetParameters": {
 							"source": {
-								"FileName": "Chicago_2022-2023_quoted.tsv"
+								"FileName": "Chicago_2022-2023_quoted1.tsv"
 							},
 							"sink": {
 								"FileName": "Chicago_2022-2023.parquet"

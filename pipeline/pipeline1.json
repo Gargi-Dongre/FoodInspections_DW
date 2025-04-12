@@ -46,14 +46,6 @@
 				}
 			}
 		],
-		"parameters": {
-			"InputFileName": {
-				"type": "string"
-			},
-			"OutputFileName": {
-				"type": "string"
-			}
-		},
 		"annotations": []
 	}
 }

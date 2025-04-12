@@ -9,7 +9,7 @@
 						"referenceName": "DS_ADLS_tsv",
 						"type": "DatasetReference"
 					},
-					"name": "source"
+					"name": "sourceBronze"
 				}
 			],
 			"sinks": [
@@ -18,21 +18,21 @@
 						"referenceName": "DS_ADLS_parquet",
 						"type": "DatasetReference"
 					},
-					"name": "sink"
+					"name": "sinkSilver"
 				}
 			],
 			"transformations": [
 				{
-					"name": "derivedColumn"
+					"name": "CelanColumns"
 				},
 				{
-					"name": "derivedColumn1"
+					"name": "CleanViolations"
 				},
 				{
-					"name": "flatten1"
+					"name": "flattenViolations"
 				},
 				{
-					"name": "derivedColumn2"
+					"name": "SplitViolationsCode"
 				}
 			],
 			"scriptLines": [
@@ -55,14 +55,14 @@
 				"          {Inspection Type} as string,",
 				"          Results as string,",
 				"          Violations as string,",
-				"          Latitude as string,",
-				"          Longitude as string,",
+				"          Latitude as double,",
+				"          Longitude as double,",
 				"          Location as string",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     ignoreNoFilesFound: false) ~> source",
-				"source derive({DBA Name} = iif(isNull({DBA Name}) || trim({DBA Name}) == '', 'Unknown', trim({DBA Name})),",
+				"     ignoreNoFilesFound: false) ~> sourceBronze",
+				"sourceBronze derive({DBA Name} = iif(isNull({DBA Name}) || trim({DBA Name}) == '', 'Unknown', trim({DBA Name})),",
 				"          {AKA Name} = iif(isNull({AKA Name}) || trim({AKA Name}) == '', 'Unknown', trim({AKA Name})),",
 				"          {License #} = iif(isNull({License #}), 0, toInteger({License #})),",
 				"          Risk = iif(\r",
@@ -118,19 +118,18 @@
 				"          Longitude = iif(  isNull(Longitude) || trim(toString(Longitude)) == '',   toDecimal(0.000000, 9, 6),   toDecimal(Longitude, 9, 6)),",
 				"          Location = iif(isNull(Location) || trim(Location) == '', '(0,0)', trim(Location)),",
 				"          FileName = $FName,",
-				"          LoadDate = currentUTC()) ~> derivedColumn",
-				"flatten1 derive(Violations = regexReplace(\r",
+				"          LoadDate = currentUTC()) ~> CelanColumns",
+				"flattenViolations derive(Violations = regexReplace(\r",
 				"    regexReplace(Violations, '^\\\"', ''),\r",
 				"    '(?i)(- Comments:.*)',\r",
 				"    ''\r",
-				"  )\r",
-				",",
+				"  ),",
 				"          Comments = iif(\r",
 				"    regexMatch(Violations, 'Comments:'),\r",
 				"    regexReplace(regexReplace(Violations, '^.*Comments:', ''), '\\\"$', ''),\r",
 				"    'NA'\r",
-				")) ~> derivedColumn1",
-				"derivedColumn foldDown(unroll(Violations),",
+				")) ~> CleanViolations",
+				"CelanColumns foldDown(unroll(Violations),",
 				"     mapColumn(",
 				"          {Inspection ID},",
 				"          {DBA Name},",
@@ -153,9 +152,20 @@
 				"          LoadDate",
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
-				"     skipDuplicateMapOutputs: false) ~> flatten1",
-				"derivedColumn1 derive(Violations = replace(Violations, 'NA\"', 'NA')) ~> derivedColumn2",
-				"derivedColumn2 sink(allowSchemaDrift: true,",
+				"     skipDuplicateMapOutputs: false) ~> flattenViolations",
+				"CleanViolations derive(Code = iif(",
+				"    equals(trim(Violations), 'NA\"'),",
+				"    -1,",
+				"    toInteger(regexReplace(Violations, '^([0-9]+)\\\\..*', '$1'))",
+				")",
+				",",
+				"          Violations = iif(",
+				"    equals(trim(Violations), 'NA\"'),",
+				"    'NA',",
+				"    regexReplace(Violations, '^[0-9]+\\\\.', '')",
+				")",
+				") ~> SplitViolationsCode",
+				"SplitViolationsCode sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'parquet',",
 				"     partitionFileNames:[($Silver_FName)],",
@@ -176,6 +186,7 @@
 				"          INSPECTION_DATE = {Inspection Date},",
 				"          INSPECTION_TYPE = {Inspection Type},",
 				"          RESULTS = Results,",
+				"          VIOLATION_CODE = Code,",
 				"          VIOLATIONS = Violations,",
 				"          COMMENTS = Comments,",
 				"          LATITUDE = Latitude,",
@@ -184,7 +195,7 @@
 				"          FILENAME = FileName,",
 				"          LOADDATE = LoadDate",
 				"     ),",
-				"     partitionBy('hash', 1)) ~> sink"
+				"     partitionBy('hash', 1)) ~> sinkSilver"
 			]
 		}
 	}

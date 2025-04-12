@@ -18,9 +18,6 @@
 					"dataflow": {
 						"referenceName": "DF_CLEAN_CHICAGO",
 						"type": "DataFlowReference",
-						"parameters": {
-							"FileName": "'Chicago_File_Default'"
-						},
 						"datasetParameters": {
 							"source": {
 								"FileName": "Chicago_2021-2022_quoted.tsv"

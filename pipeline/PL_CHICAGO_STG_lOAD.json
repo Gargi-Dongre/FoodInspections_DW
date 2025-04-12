@@ -21,14 +21,6 @@
 						"parameters": {
 							"FName": "'Chicago_2025-present_quoted.tsv'",
 							"Silver_FName": "'Chicago_2025-present.parquet'"
-						},
-						"datasetParameters": {
-							"source": {
-								"FileName": "Chicago_2025-present_quoted.tsv"
-							},
-							"sink": {
-								"FileName": "Chicago_2025-present.parquet"
-							}
 						}
 					},
 					"compute": {
@@ -214,6 +206,15 @@
 								"sink": {
 									"name": "RESULTS",
 									"type": "String"
+								}
+							},
+							{
+								"source": {
+									"name": "VIOlATION_CODE"
+								},
+								"sink": {
+									"name": "VIOLATION_CODE",
+									"type": "Int64"
 								}
 							},
 							{

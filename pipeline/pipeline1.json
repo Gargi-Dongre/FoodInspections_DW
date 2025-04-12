@@ -16,15 +16,18 @@
 				"userProperties": [],
 				"typeProperties": {
 					"dataflow": {
-						"referenceName": "dataflow1",
+						"referenceName": "DF_CLEAN_CHICAGO",
 						"type": "DataFlowReference",
+						"parameters": {
+							"FileName": "'Chicago_File_Default'"
+						},
 						"datasetParameters": {
-							"source1": {
-								"FileName": "cleaned_file1.tsv"
+							"source": {
+								"FileName": "Chicago_2021-2022_quoted.tsv"
 							},
-							"sink1": {
+							"sink": {
 								"SchemaName": "STG",
-								"TableName": "STG_V1_CHICAGO"
+								"TableName": "STG_CHICAGO"
 							}
 						}
 					},

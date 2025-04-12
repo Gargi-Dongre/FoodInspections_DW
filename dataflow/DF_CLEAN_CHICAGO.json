@@ -15,7 +15,7 @@
 			"sinks": [
 				{
 					"dataset": {
-						"referenceName": "DS_Snowflake",
+						"referenceName": "DS_ADLS_parquet",
 						"type": "DatasetReference"
 					},
 					"name": "sink"
@@ -34,7 +34,8 @@
 			],
 			"scriptLines": [
 				"parameters{",
-				"     FileName as string ('Chicago_File_Default')",
+				"     FileName as string ('Chicago_File_Default'),",
+				"     SILVER_FILE_NAME as string",
 				"}",
 				"source(output(",
 				"          {Inspection ID} as integer,",
@@ -163,12 +164,11 @@
 				"     skipDuplicateMapOutputs: false) ~> flatten1",
 				"derivedColumn1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     deletable:false,",
-				"     insertable:true,",
-				"     updateable:false,",
-				"     upsertable:false,",
-				"     format: 'table',",
-				"     stageInsert: true,",
+				"     format: 'parquet',",
+				"     partitionFileNames:[($SILVER_FILE_NAME)],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
 				"     mapColumn(",
 				"          INSPECTION_ID = {Inspection ID},",
 				"          DBA_NAME = {DBA Name},",
@@ -190,7 +190,8 @@
 				"          LOCATION = Location,",
 				"          FILENAME = FileName,",
 				"          LOADDATE = LoadDate",
-				"     )) ~> sink"
+				"     ),",
+				"     partitionBy('hash', 1)) ~> sink"
 			]
 		}
 	}

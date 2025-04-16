@@ -87,6 +87,12 @@
 				},
 				{
 					"name": "aggregateDupes"
+				},
+				{
+					"name": "derivedColumnLocation"
+				},
+				{
+					"name": "derivedColumnMeta"
 				}
 			],
 			"scriptLines": [
@@ -660,7 +666,7 @@
 				"   )",
 				"",
 				" )) ~> derivedColumns",
-				"derivedColumns select(mapColumn(",
+				"derivedColumnLocation select(mapColumn(",
 				"          Violation_Number,",
 				"          Violation_Description,",
 				"          Violation_Points,",
@@ -707,7 +713,11 @@
 				"          Latitude,",
 				"          Longitude),",
 				"     dummy = first(Violation_Number)) ~> aggregateDupes",
-				"aggregateDupes sink(allowSchemaDrift: true,",
+				"derivedColumns derive(Latitude = iif(isNull(Latitude),0.000000,toFloat(Latitude)),",
+				"          Longitude = iif(isNull(Longitude),0.000000,toFloat(Longitude))) ~> derivedColumnLocation",
+				"aggregateDupes derive(FileName = $FName,",
+				"          LoadDate = currentUTC()) ~> derivedColumnMeta",
+				"derivedColumnMeta sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'parquet',",
 				"     partitionFileNames:[($Silver_FName)],",
@@ -735,7 +745,9 @@
 				"          INSPECTION_YEAR = {Inspection Year},",
 				"          VIOLATION_CODE = Violation_Code,",
 				"          LATITUDE = Latitude,",
-				"          LONGITUDE = Longitude",
+				"          LONGITUDE = Longitude,",
+				"          FILENAME = FileName,",
+				"          LOADDATE = LoadDate",
 				"     ),",
 				"     partitionBy('hash', 1)) ~> sinkPQ"
 			]

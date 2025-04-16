@@ -12,15 +12,7 @@
 					"name": "sourceBronze"
 				}
 			],
-			"sinks": [
-				{
-					"dataset": {
-						"referenceName": "DS_Snowflake",
-						"type": "DatasetReference"
-					},
-					"name": "sink1"
-				}
-			],
+			"sinks": [],
 			"transformations": [
 				{
 					"name": "unpivotDescriptions"
@@ -53,19 +45,31 @@
 					"name": "joinMemoToDetails"
 				},
 				{
+					"name": "derivedViolationMemoNumber"
+				},
+				{
+					"name": "deriveViolationDetailsNumber"
+				},
+				{
+					"name": "deriveViolationPointsNumber"
+				},
+				{
+					"name": "deriveViolationDescriptionNumber"
+				},
+				{
 					"name": "selectToDetails"
 				},
 				{
-					"name": "joinMemoToPoints"
+					"name": "joinToPoints"
 				},
 				{
-					"name": "selectToPoints"
+					"name": "selectToDescription"
 				},
 				{
-					"name": "joinMemoToDescriptions"
+					"name": "joinToDescription"
 				},
 				{
-					"name": "selectToDescriptions"
+					"name": "select1"
 				}
 			],
 			"scriptLines": [
@@ -362,7 +366,7 @@
 				"          {Lat Long Location}),",
 				"     lateral: false,",
 				"     ignoreNullPivots: false) ~> unpivotMemo",
-				"unpivotMemo, unpivotDetails join(unpivotMemo@{Restaurant Name} == unpivotDetails@{Restaurant Name}",
+				"derivedViolationMemoNumber, deriveViolationDetailsNumber join(unpivotMemo@{Restaurant Name} == unpivotDetails@{Restaurant Name}",
 				"     && unpivotMemo@{Inspection Type} == unpivotDetails@{Inspection Type}",
 				"     && unpivotMemo@{Inspection Date} == unpivotDetails@{Inspection Date}",
 				"     && unpivotMemo@{Inspection Score} == unpivotDetails@{Inspection Score}",
@@ -381,6 +385,18 @@
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> joinMemoToDetails",
+				"unpivotMemo derive(Violation_Memo_Number = toInteger(iif(",
+				"",
+				"     Violation_Memo_Number == 'Violation  Memo - 20', ",
+				"",
+				"     replace(Violation_Memo_Number, 'Violation  Memo - ', ''),",
+				"",
+				"     replace(Violation_Memo_Number, 'Violation Memo - ', '')",
+				"",
+				" ))) ~> derivedViolationMemoNumber",
+				"unpivotDetails derive(Violation_Detail_Number = toInteger(replace(Violation_Detail_Number, 'Violation Detail -', ''))) ~> deriveViolationDetailsNumber",
+				"unpivotPoints derive(Violation_Points_Number = toInteger(replace(Violation_Points_Number, 'Violation Points -', ''))) ~> deriveViolationPointsNumber",
+				"unpivotDescriptions derive(Violation_Description_Number = toInteger(replace(Violation_Description_Number, 'Violation Description -', ''))) ~> deriveViolationDescriptionNumber",
 				"joinMemoToDetails select(mapColumn(",
 				"          Violation_Memo_Number,",
 				"          Violation_Memo,",
@@ -403,7 +419,7 @@
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> selectToDetails",
-				"selectToDetails, unpivotPoints join(Violation_Memo_Number == Violation_Points_Number",
+				"selectToDetails, deriveViolationPointsNumber join(Violation_Memo_Number == Violation_Points_Number",
 				"     && selectToDetails@{Restaurant Name} == unpivotPoints@{Restaurant Name}",
 				"     && selectToDetails@{Inspection Type} == unpivotPoints@{Inspection Type}",
 				"     && selectToDetails@{Inspection Date} == unpivotPoints@{Inspection Date}",
@@ -421,8 +437,8 @@
 				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> joinMemoToPoints",
-				"joinMemoToPoints select(mapColumn(",
+				"     broadcast: 'auto')~> joinToPoints",
+				"joinToPoints select(mapColumn(",
 				"          Violation_Memo_Number,",
 				"          Violation_Memo,",
 				"          Violation_Detail_Number,",
@@ -445,32 +461,32 @@
 				"          Violation_Points",
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
-				"     skipDuplicateMapOutputs: false) ~> selectToPoints",
-				"selectToPoints, unpivotDescriptions join(Violation_Memo_Number == Violation_Description_Number",
-				"     && selectToPoints@{Restaurant Name} == unpivotDescriptions@{Restaurant Name}",
-				"     && selectToPoints@{Inspection Type} == unpivotDescriptions@{Inspection Type}",
-				"     && selectToPoints@{Inspection Date} == unpivotDescriptions@{Inspection Date}",
-				"     && selectToPoints@{Inspection Score} == unpivotDescriptions@{Inspection Score}",
-				"     && selectToPoints@{Street Number} == unpivotDescriptions@{Street Number}",
-				"     && selectToPoints@{Street Name} == unpivotDescriptions@{Street Name}",
-				"     && selectToPoints@{Street Direction} == unpivotDescriptions@{Street Direction}",
-				"     && selectToPoints@{Street Type} == unpivotDescriptions@{Street Type}",
-				"     && selectToPoints@{Street Unit} == unpivotDescriptions@{Street Unit}",
-				"     && selectToPoints@{Street Address} == unpivotDescriptions@{Street Address}",
-				"     && selectToPoints@{Zip Code} == unpivotDescriptions@{Zip Code}",
-				"     && selectToPoints@{Inspection Month} == unpivotDescriptions@{Inspection Month}",
-				"     && selectToPoints@{Inspection Year} == unpivotDescriptions@{Inspection Year}",
-				"     && selectToPoints@{Lat Long Location} == unpivotDescriptions@{Lat Long Location},",
+				"     skipDuplicateMapOutputs: false) ~> selectToDescription",
+				"selectToDescription, deriveViolationDescriptionNumber join(Violation_Memo_Number == Violation_Description_Number",
+				"     && selectToDescription@{Restaurant Name} == unpivotDescriptions@{Restaurant Name}",
+				"     && selectToDescription@{Inspection Type} == unpivotDescriptions@{Inspection Type}",
+				"     && selectToDescription@{Inspection Date} == unpivotDescriptions@{Inspection Date}",
+				"     && selectToDescription@{Inspection Score} == unpivotDescriptions@{Inspection Score}",
+				"     && selectToDescription@{Street Number} == unpivotDescriptions@{Street Number}",
+				"     && selectToDescription@{Street Name} == unpivotDescriptions@{Street Name}",
+				"     && selectToDescription@{Street Direction} == unpivotDescriptions@{Street Direction}",
+				"     && selectToDescription@{Street Type} == unpivotDescriptions@{Street Type}",
+				"     && selectToDescription@{Street Unit} == unpivotDescriptions@{Street Unit}",
+				"     && selectToDescription@{Street Address} == unpivotDescriptions@{Street Address}",
+				"     && selectToDescription@{Zip Code} == unpivotDescriptions@{Zip Code}",
+				"     && selectToDescription@{Inspection Month} == unpivotDescriptions@{Inspection Month}",
+				"     && selectToDescription@{Inspection Year} == unpivotDescriptions@{Inspection Year}",
+				"     && selectToDescription@{Lat Long Location} == unpivotDescriptions@{Lat Long Location},",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> joinMemoToDescriptions",
-				"joinMemoToDescriptions select(mapColumn(",
-				"          Violation_Memo_Number,",
+				"     broadcast: 'auto')~> joinToDescription",
+				"joinToDescription select(mapColumn(",
+				"          Violation_Number = Violation_Memo_Number,",
+				"          Violation_Description,",
+				"          Violation_Points,",
 				"          Violation_Memo,",
 				"          Violation_Detail,",
-				"          Violation_Points,",
-				"          Violation_Description,",
 				"          {Restaurant Name} = unpivotDescriptions@{Restaurant Name},",
 				"          {Inspection Type} = unpivotDescriptions@{Inspection Type},",
 				"          {Inspection Date} = unpivotDescriptions@{Inspection Date},",
@@ -487,35 +503,7 @@
 				"          {Lat Long Location} = unpivotDescriptions@{Lat Long Location}",
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
-				"     skipDuplicateMapOutputs: false) ~> selectToDescriptions",
-				"selectToDescriptions sink(allowSchemaDrift: true,",
-				"     validateSchema: false,",
-				"     deletable:false,",
-				"     insertable:true,",
-				"     updateable:false,",
-				"     upsertable:false,",
-				"     format: 'table',",
-				"     stageInsert: true,",
-				"     mapColumn(",
-				"          VIOLATION_NUMBER = Violation_Memo_Number,",
-				"          VIOLATION_MEMO = Violation_Memo,",
-				"          VIOLATION_DETAIL = Violation_Detail,",
-				"          VIOLATION_POINTS = Violation_Points,",
-				"          VIOLATION_DESCRIPTION = Violation_Description,",
-				"          RESTAURANT_NAME = {Restaurant Name},",
-				"          INSPECTION_TYPE = {Inspection Type},",
-				"          INSPECTION_DATE = {Inspection Date},",
-				"          INSPECTION_SCORE = {Inspection Score},",
-				"          STREET_NUMBER = {Street Number},",
-				"          STREET_NAME = {Street Name},",
-				"          STREET_DIRECTION = {Street Direction},",
-				"          STREET_TYPE = {Street Type},",
-				"          STREET_UNIT = {Street Unit},",
-				"          STREET_ADDRESS = {Street Address},",
-				"          ZIP_CODE = {Zip Code},",
-				"          INSPECTION_MONTH = {Inspection Month},",
-				"          INSPECTION_YEAR = {Inspection Year}",
-				"     )) ~> sink1"
+				"     skipDuplicateMapOutputs: false) ~> select1"
 			]
 		}
 	}

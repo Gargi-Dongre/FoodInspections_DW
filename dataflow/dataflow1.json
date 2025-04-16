@@ -22,6 +22,12 @@
 				},
 				{
 					"name": "CleanColumns"
+				},
+				{
+					"name": "selectPoints"
+				},
+				{
+					"name": "unpivotPoints"
 				}
 			],
 			"scriptLines": [
@@ -196,7 +202,32 @@
 				"          {Street Address} = iif(isNull({Street Address}) || trim({Street Address}) == '', 'Unknown', trim({Street Address})),",
 				"          {Zip Code} = iif(isNull({Zip Code}) || trim({Zip Code}) == '', '-1', trim({Zip Code})),",
 				"          {Inspection Month} = iif(isNull({Inspection Month}) || trim({Inspection Month}) == '', 'NA', trim({Inspection Month})),",
-				"          {Inspection Year} = iif(isNull({Inspection Year}) || trim({Inspection Year}) == '', 'NA', trim({Inspection Year}))) ~> CleanColumns"
+				"          {Inspection Year} = iif(isNull({Inspection Year}) || trim({Inspection Year}) == '', 'NA', trim({Inspection Year}))) ~> CleanColumns",
+				"CleanColumns select(mapColumn(",
+				"          each(patternMatch(`Violation Points .*`),",
+				"               $0 = $$),",
+				"          {Restaurant Name},",
+				"          {Inspection Type},",
+				"          {Inspection Date},",
+				"          {Inspection Score},",
+				"          {Street Number},",
+				"          {Street Name},",
+				"          {Street Direction},",
+				"          {Street Type},",
+				"          {Street Unit},",
+				"          {Street Address},",
+				"          {Zip Code},",
+				"          {Inspection Month},",
+				"          {Inspection Year},",
+				"          {Lat Long Location}",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> selectPoints",
+				"selectPoints unpivot(output(",
+				"          ",
+				"     ),",
+				"     lateral: true,",
+				"     ignoreNullPivots: false) ~> unpivotPoints"
 			]
 		}
 	}

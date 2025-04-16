@@ -40,6 +40,9 @@
 				},
 				{
 					"name": "unpivotMemo"
+				},
+				{
+					"name": "join1"
 				}
 			],
 			"scriptLines": [
@@ -335,7 +338,15 @@
 				"          {Inspection Year},",
 				"          {Lat Long Location}),",
 				"     lateral: false,",
-				"     ignoreNullPivots: false) ~> unpivotMemo"
+				"     ignoreNullPivots: false) ~> unpivotMemo",
+				"unpivotMemo, unpivotDetails join(unpivotMemo@{Restaurant Name} == unpivotDetails@{Restaurant Name}",
+				"     && unpivotMemo@{Inspection Type} == ERROR_FUNCTION('')",
+				"     && unpivotMemo@{Inspection Date} == ERROR_FUNCTION('')",
+				"     && unpivotMemo@{Inspection Score} == ERROR_FUNCTION(''),",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1"
 			]
 		}
 	}

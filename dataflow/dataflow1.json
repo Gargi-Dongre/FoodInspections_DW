@@ -37,6 +37,9 @@
 				},
 				{
 					"name": "selectMemo"
+				},
+				{
+					"name": "unpivotMemo"
 				}
 			],
 			"scriptLines": [
@@ -295,6 +298,7 @@
 				"CleanColumns select(mapColumn(",
 				"          each(patternMatch(`Violation Memo .*`),",
 				"               $0 = $$),",
+				"          {Violation  Memo - 20},",
 				"          {Restaurant Name},",
 				"          {Inspection Type},",
 				"          {Inspection Date},",
@@ -311,7 +315,26 @@
 				"          {Lat Long Location}",
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
-				"     skipDuplicateMapOutputs: false) ~> selectMemo"
+				"     skipDuplicateMapOutputs: false) ~> selectMemo",
+				"selectMemo unpivot(output(",
+				"          ",
+				"     ),",
+				"     ungroupBy({Restaurant Name},",
+				"          {Inspection Type},",
+				"          {Inspection Date},",
+				"          {Inspection Score},",
+				"          {Street Number},",
+				"          {Street Name},",
+				"          {Street Direction},",
+				"          {Street Type},",
+				"          {Street Unit},",
+				"          {Street Address},",
+				"          {Zip Code},",
+				"          {Inspection Month},",
+				"          {Inspection Year},",
+				"          {Lat Long Location}),",
+				"     lateral: true,",
+				"     ignoreNullPivots: false) ~> unpivotMemo"
 			]
 		}
 	}

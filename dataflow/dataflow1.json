@@ -58,6 +58,9 @@
 				},
 				{
 					"name": "selectToDescriptions"
+				},
+				{
+					"name": "derivedColumn1"
 				}
 			],
 			"scriptLines": [
@@ -459,9 +462,6 @@
 				"     broadcast: 'auto')~> joinMemoToDescriptions",
 				"joinMemoToDescriptions select(mapColumn(",
 				"          Violation_Memo_Number,",
-				"          Violation_Detail_Number,",
-				"          Violation_Points_Number,",
-				"          Violation_Description_Number,",
 				"          Violation_Memo,",
 				"          Violation_Detail,",
 				"          Violation_Points,",
@@ -482,7 +482,8 @@
 				"          {Lat Long Location} = unpivotDescriptions@{Lat Long Location}",
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
-				"     skipDuplicateMapOutputs: false) ~> selectToDescriptions"
+				"     skipDuplicateMapOutputs: false) ~> selectToDescriptions",
+				"selectToDescriptions derive() ~> derivedColumn1"
 			]
 		}
 	}

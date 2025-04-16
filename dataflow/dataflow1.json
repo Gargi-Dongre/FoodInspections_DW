@@ -28,6 +28,15 @@
 				},
 				{
 					"name": "unpivotPoints"
+				},
+				{
+					"name": "selectDetails"
+				},
+				{
+					"name": "unpivotDetails"
+				},
+				{
+					"name": "selectMemo"
 				}
 			],
 			"scriptLines": [
@@ -242,7 +251,67 @@
 				"          {Inspection Year},",
 				"          {Lat Long Location}),",
 				"     lateral: false,",
-				"     ignoreNullPivots: false) ~> unpivotPoints"
+				"     ignoreNullPivots: false) ~> unpivotPoints",
+				"CleanColumns select(mapColumn(",
+				"          each(patternMatch(`Violation Detail .*`),",
+				"               $0 = $$),",
+				"          {Restaurant Name},",
+				"          {Inspection Type},",
+				"          {Inspection Date},",
+				"          {Inspection Score},",
+				"          {Street Number},",
+				"          {Street Name},",
+				"          {Street Direction},",
+				"          {Street Type},",
+				"          {Street Unit},",
+				"          {Street Address},",
+				"          {Zip Code},",
+				"          {Inspection Month},",
+				"          {Inspection Year},",
+				"          {Lat Long Location}",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> selectDetails",
+				"selectDetails unpivot(output(",
+				"          Violation_Detail_Number as string,",
+				"          Violation_Detail as string",
+				"     ),",
+				"     ungroupBy({Restaurant Name},",
+				"          {Inspection Type},",
+				"          {Inspection Date},",
+				"          {Inspection Score},",
+				"          {Street Number},",
+				"          {Street Name},",
+				"          {Street Direction},",
+				"          {Street Type},",
+				"          {Street Unit},",
+				"          {Street Address},",
+				"          {Zip Code},",
+				"          {Inspection Month},",
+				"          {Inspection Year},",
+				"          {Lat Long Location}),",
+				"     lateral: false,",
+				"     ignoreNullPivots: false) ~> unpivotDetails",
+				"CleanColumns select(mapColumn(",
+				"          each(patternMatch(`Violation Memo .*`),",
+				"               $0 = $$),",
+				"          {Restaurant Name},",
+				"          {Inspection Type},",
+				"          {Inspection Date},",
+				"          {Inspection Score},",
+				"          {Street Number},",
+				"          {Street Name},",
+				"          {Street Direction},",
+				"          {Street Type},",
+				"          {Street Unit},",
+				"          {Street Address},",
+				"          {Zip Code},",
+				"          {Inspection Month},",
+				"          {Inspection Year},",
+				"          {Lat Long Location}",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> selectMemo"
 			]
 		}
 	}

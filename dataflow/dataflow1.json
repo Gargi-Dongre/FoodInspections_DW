@@ -12,7 +12,15 @@
 					"name": "sourceBronze"
 				}
 			],
-			"sinks": [],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_ADLS_parquet",
+						"type": "DatasetReference"
+					},
+					"name": "sinkPQ"
+				}
+			],
 			"transformations": [
 				{
 					"name": "unpivotDescriptions"
@@ -78,12 +86,13 @@
 					"name": "select"
 				},
 				{
-					"name": "window"
+					"name": "aggregateDupes"
 				}
 			],
 			"scriptLines": [
 				"parameters{",
-				"     FName as string ('DallasDefault')",
+				"     FName as string ('DallasDefault'),",
+				"     Silver_FName as string ('Default_dallas')",
 				"}",
 				"source(output(",
 				"          {Restaurant Name} as string,",
@@ -676,11 +685,16 @@
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> select",
-				"select window(over(Violation_Description,",
+				"select aggregate(groupBy(Violation_Number,",
+				"          Violation_Description,",
+				"          Violation_Points,",
 				"          Violation_Memo,",
 				"          Violation_Detail,",
 				"          {Restaurant Name},",
 				"          {Inspection Type},",
+				"          {Inspection Date},",
+				"          {Inspection Score},",
+				"          {Street Number},",
 				"          {Street Name},",
 				"          {Street Direction},",
 				"          {Street Type},",
@@ -690,14 +704,40 @@
 				"          {Inspection Month},",
 				"          {Inspection Year},",
 				"          Violation_Code,",
-				"          Violation_Number,",
-				"          Violation_Points,",
-				"          {Inspection Date},",
-				"          {Inspection Score},",
-				"          {Street Number},",
 				"          Latitude,",
 				"          Longitude),",
-				"     RowNumber = rowNumber()) ~> window"
+				"     dummy = first(Violation_Number)) ~> aggregateDupes",
+				"aggregateDupes sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'parquet',",
+				"     partitionFileNames:[($Silver_FName)],",
+				"     umask: 0022,",
+				"     preCommands: [],",
+				"     postCommands: [],",
+				"     mapColumn(",
+				"          VIOLATION_NUMBER = Violation_Number,",
+				"          VIOLATION_DESCRIPTION = Violation_Description,",
+				"          VIOLATION_POINTS = Violation_Points,",
+				"          VIOLATION_MEMO = Violation_Memo,",
+				"          VIOLATION_DETAIL = Violation_Detail,",
+				"          RESTAURANT_NAME = {Restaurant Name},",
+				"          INSPECTION_TYPE = {Inspection Type},",
+				"          INSPECTION_DATE = {Inspection Date},",
+				"          INSPECTION_SCORE = {Inspection Score},",
+				"          STREET_NUMBER = {Street Number},",
+				"          STREET_NAME = {Street Name},",
+				"          STREET_DIRECTION = {Street Direction},",
+				"          STREET_TYPE = {Street Type},",
+				"          STREET_UNIT = {Street Unit},",
+				"          STREET_ADDRESS = {Street Address},",
+				"          ZIP_CODE = {Zip Code},",
+				"          INSPECTION_MONTH = {Inspection Month},",
+				"          INSPECTION_YEAR = {Inspection Year},",
+				"          VIOLATION_CODE = Violation_Code,",
+				"          LATITUDE = Latitude,",
+				"          LONGITUDE = Longitude",
+				"     ),",
+				"     partitionBy('hash', 1)) ~> sinkPQ"
 			]
 		}
 	}

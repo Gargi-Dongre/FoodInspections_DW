@@ -12,7 +12,15 @@
 					"name": "sourceBronze"
 				}
 			],
-			"sinks": [],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
 			"transformations": [
 				{
 					"name": "unpivotDescriptions"
@@ -58,9 +66,6 @@
 				},
 				{
 					"name": "selectToDescriptions"
-				},
-				{
-					"name": "derivedColumn1"
 				}
 			],
 			"scriptLines": [
@@ -483,7 +488,34 @@
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> selectToDescriptions",
-				"selectToDescriptions derive() ~> derivedColumn1"
+				"selectToDescriptions sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     stageInsert: true,",
+				"     mapColumn(",
+				"          VIOLATION_NUMBER = Violation_Memo_Number,",
+				"          VIOLATION_MEMO = Violation_Memo,",
+				"          VIOLATION_DETAIL = Violation_Detail,",
+				"          VIOLATION_POINTS = Violation_Points,",
+				"          VIOLATION_DESCRIPTION = Violation_Description,",
+				"          RESTAURANT_NAME = {Restaurant Name},",
+				"          INSPECTION_TYPE = {Inspection Type},",
+				"          INSPECTION_DATE = {Inspection Date},",
+				"          INSPECTION_SCORE = {Inspection Score},",
+				"          STREET_NUMBER = {Street Number},",
+				"          STREET_NAME = {Street Name},",
+				"          STREET_DIRECTION = {Street Direction},",
+				"          STREET_TYPE = {Street Type},",
+				"          STREET_UNIT = {Street Unit},",
+				"          STREET_ADDRESS = {Street Address},",
+				"          ZIP_CODE = {Zip Code},",
+				"          INSPECTION_MONTH = {Inspection Month},",
+				"          INSPECTION_YEAR = {Inspection Year}",
+				"     )) ~> sink1"
 			]
 		}
 	}

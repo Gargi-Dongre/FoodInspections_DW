@@ -19,6 +19,9 @@
 				},
 				{
 					"name": "selectDescriptions"
+				},
+				{
+					"name": "CleanColumns"
 				}
 			],
 			"scriptLines": [
@@ -161,9 +164,7 @@
 				"          {Lat Long Location}),",
 				"     lateral: false,",
 				"     ignoreNullPivots: false) ~> unpivotDescriptions",
-				"sourceBronze select(mapColumn(",
-				"          each(patternMatch(`Violation Description .*`),",
-				"               $0 = $$),",
+				"CleanColumns select(mapColumn(",
 				"          {Restaurant Name},",
 				"          {Inspection Type},",
 				"          {Inspection Date},",
@@ -177,10 +178,25 @@
 				"          {Zip Code},",
 				"          {Inspection Month},",
 				"          {Inspection Year},",
-				"          {Lat Long Location}",
+				"          {Lat Long Location},",
+				"          each(patternMatch(`Violation Description .*`),",
+				"               $0 = $$)",
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
-				"     skipDuplicateMapOutputs: false) ~> selectDescriptions"
+				"     skipDuplicateMapOutputs: false) ~> selectDescriptions",
+				"sourceBronze derive({Restaurant Name} = iif(isNull({Restaurant Name}) || trim({Restaurant Name}) == '', 'Unknown', trim({Restaurant Name})),",
+				"          {Inspection Type} = iif(isNull({Inspection Type}) || trim({Inspection Type}) == '', 'Unknown', trim({Inspection Type})),",
+				"          {Inspection Date} = iif(isNull({Inspection Date}) || trim(toString({Inspection Date})) == '', toDate('31-12-9999', 'dd-MM-yyyy'), {Inspection Date}),",
+				"          {Inspection Score} = toInteger({Inspection Score}),",
+				"          {Street Number} = iif(isNull({Street Number}) || {Street Number} == 0, 0, toInteger({Street Number})),",
+				"          {Street Name} = iif(isNull({Street Name}) || trim({Street Name}) == '', 'Unknown', trim({Street Name})),",
+				"          {Street Direction} = iif(isNull({Street Direction}) || trim({Street Direction}) == '', 'NA', trim({Street Direction})),",
+				"          {Street Type} = iif(isNull({Street Type}) || trim({Street Type}) == '', 'Unknown', trim({Street Type})),",
+				"          {Street Unit} = iif(isNull({Street Unit}) || trim({Street Unit}) == '', 'NA', trim({Street Unit})),",
+				"          {Street Address} = iif(isNull({Street Address}) || trim({Street Address}) == '', 'Unknown', trim({Street Address})),",
+				"          {Zip Code} = iif(isNull({Zip Code}) || trim({Zip Code}) == '', '-1', trim({Zip Code})),",
+				"          {Inspection Month} = iif(isNull({Inspection Month}) || trim({Inspection Month}) == '', 'NA', trim({Inspection Month})),",
+				"          {Inspection Year} = iif(isNull({Inspection Year}) || trim({Inspection Year}) == '', 'NA', trim({Inspection Year}))) ~> CleanColumns"
 			]
 		}
 	}

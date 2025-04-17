@@ -1,0 +1,1646 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "FoodInspectionAdf"
+		},
+		"Snowflake_LS_password": {
+			"type": "secureString",
+			"metadata": "Secure string for 'password' of 'Snowflake_LS'"
+		},
+		"LS_AzureBlobStorage_sasUri": {
+			"type": "secureString",
+			"metadata": "Secure string for 'sasUri' of 'LS_AzureBlobStorage'"
+		},
+		"LS_AzureDataLakeStorage_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://foodinspection.dfs.core.windows.net/"
+		},
+		"Snowflake_LS_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "FoodIns"
+		},
+		"Snowflake_LS_properties_typeProperties_role": {
+			"type": "string",
+			"defaultValue": "FoodRole"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_AzureBlobStorage')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobStorage",
+				"typeProperties": {
+					"sasUri": "[parameters('LS_AzureBlobStorage_sasUri')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/LS_AzureDataLakeStorage')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "AzureBlobFS",
+				"typeProperties": {
+					"url": "[parameters('LS_AzureDataLakeStorage_properties_typeProperties_url')]"
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/Snowflake_LS')]",
+			"type": "Microsoft.DataFactory/factories/linkedServices",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"annotations": [],
+				"type": "SnowflakeV2",
+				"typeProperties": {
+					"authenticationType": "Basic",
+					"accountIdentifier": "cc82933.central-us.azure",
+					"user": "FoodUser",
+					"database": "[parameters('Snowflake_LS_properties_typeProperties_database')]",
+					"warehouse": "FoodIns_WH",
+					"role": "[parameters('Snowflake_LS_properties_typeProperties_role')]",
+					"password": {
+						"type": "SecureString",
+						"value": "[parameters('Snowflake_LS_password')]"
+					}
+				}
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_ADLS_parquet')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_AzureDataLakeStorage",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"FileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "Parquet",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"fileSystem": "silver"
+					},
+					"compressionCodec": "snappy"
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureDataLakeStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_ADLS_tsv')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "LS_AzureDataLakeStorage",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"FileName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "DelimitedText",
+				"typeProperties": {
+					"location": {
+						"type": "AzureBlobFSLocation",
+						"fileName": {
+							"value": "@dataset().FileName",
+							"type": "Expression"
+						},
+						"fileSystem": "bronze"
+					},
+					"columnDelimiter": "\t",
+					"escapeChar": "\\",
+					"firstRowAsHeader": true,
+					"quoteChar": "\""
+				},
+				"schema": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureDataLakeStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DS_Snowflake')]",
+			"type": "Microsoft.DataFactory/factories/datasets",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"linkedServiceName": {
+					"referenceName": "Snowflake_LS",
+					"type": "LinkedServiceReference"
+				},
+				"parameters": {
+					"SchemaName": {
+						"type": "string"
+					},
+					"TableName": {
+						"type": "string"
+					}
+				},
+				"annotations": [],
+				"type": "SnowflakeV2Table",
+				"schema": [],
+				"typeProperties": {
+					"schema": {
+						"value": "@dataset().SchemaName",
+						"type": "Expression"
+					},
+					"table": {
+						"value": "@dataset().TableName",
+						"type": "Expression"
+					}
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/linkedServices/Snowflake_LS')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_CLEAN_CHICAGO')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_ADLS_tsv",
+								"type": "DatasetReference"
+							},
+							"name": "sourceBronze"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_ADLS_parquet",
+								"type": "DatasetReference"
+							},
+							"name": "sinkSilver"
+						}
+					],
+					"transformations": [
+						{
+							"name": "CleanColumns"
+						},
+						{
+							"name": "CleanViolations"
+						},
+						{
+							"name": "flattenViolations"
+						},
+						{
+							"name": "SplitViolationsCode"
+						}
+					],
+					"scriptLines": [
+						"parameters{",
+						"     FName as string ('Chicago_File_Default'),",
+						"     Silver_FName as string ('Default.parquet')",
+						"}",
+						"source(output(",
+						"          {Inspection ID} as integer,",
+						"          {DBA Name} as string,",
+						"          {AKA Name} as string,",
+						"          {License #} as double,",
+						"          {Facility Type} as string,",
+						"          Risk as string,",
+						"          Address as string,",
+						"          City as string,",
+						"          State as string,",
+						"          Zip as double,",
+						"          {Inspection Date} as date,",
+						"          {Inspection Type} as string,",
+						"          Results as string,",
+						"          Violations as string,",
+						"          Latitude as double,",
+						"          Longitude as double,",
+						"          Location as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> sourceBronze",
+						"sourceBronze derive({DBA Name} = iif(isNull({DBA Name}) || trim({DBA Name}) == '', 'Unknown', trim({DBA Name})),",
+						"          {AKA Name} = iif(isNull({AKA Name}) || trim({AKA Name}) == '', 'Unknown', trim({AKA Name})),",
+						"          {License #} = iif(isNull({License #}), 0, toInteger({License #})),",
+						"          Risk = iif(\r",
+						"  isNull(Risk) || trim(Risk) == '' || lower(trim(Risk)) == 'all',\r",
+						"  'Unknown',\r",
+						"  iif(\r",
+						"    startsWith(trim(Risk), 'Risk 1'),\r",
+						"    'High',\r",
+						"    iif(\r",
+						"      startsWith(trim(Risk), 'Risk 2'),\r",
+						"      'Medium',\r",
+						"      iif(\r",
+						"        startsWith(trim(Risk), 'Risk 3'),\r",
+						"        'Low',\r",
+						"        'Unknown'\r",
+						"      )\r",
+						"    )\r",
+						"  )\r",
+						"),",
+						"          {Facility Type} = iif(isNull({Facility Type}) || trim({Facility Type}) == '', 'Unknown', trim({Facility Type})),",
+						"          Address = iif(isNull(Address) || trim(Address) == '', 'Unknown', trim(Address)),",
+						"          City = iif(",
+						"",
+						"     isNull(City) || trim(City) == '', ",
+						"",
+						"     'OTHER', ",
+						"",
+						"     iif(",
+						"",
+						"         regexMatch(upper(trim(City)), '.*CHICAGO.*'), ",
+						"",
+						"         'CHICAGO', ",
+						"",
+						"         'OTHER'",
+						"",
+						"     )",
+						"",
+						" ),",
+						"          State = iif(",
+						"",
+						"     isNull(State) || trim(State) == '', ",
+						"",
+						"     'OTH', ",
+						"",
+						"     iif(",
+						"",
+						"         upper(trim(State)) == 'IL', ",
+						"",
+						"         'IL', ",
+						"",
+						"         'OTH'",
+						"",
+						"     )",
+						"",
+						" ),",
+						"          Zip = iif(isNull(Zip) || Zip == 0, -1, toInteger(Zip)),",
+						"          {Inspection Type} = iif(isNull({Inspection Type}) || trim({Inspection Type}) == '', 'Unknown', trim({Inspection Type})),",
+						"          {Inspection Date} = iif(isNull({Inspection Date}) || trim(toString({Inspection Date})) == '', toDate('31-12-9999', 'dd-MM-yyyy'), {Inspection Date}),",
+						"          Results = iif(isNull(Results) || trim(Results) == '', 'Unknown', trim(Results)),",
+						"          Violations = split(",
+						"  trim(",
+						"    replace(",
+						"      replace(",
+						"        replace(",
+						"          replace(",
+						"            replace(",
+						"              replace(",
+						"                replace(",
+						"                  trim(Violations),",
+						"                  '\"\"\"', '\"'),",
+						"                '\\t', ''),",
+						"              '\\r', ''),",
+						"            '\\n', ' '),",
+						"          '||', '|'),",
+						"        ' |', '|'),",
+						"      '| ', '|')",
+						"  ),",
+						"  '|'",
+						"),",
+						"          Latitude = iif(\r",
+						"  isNull(Latitude) || trim(toString(Latitude)) == '', \r",
+						"  toDecimal(0.000000, 9, 6), \r",
+						"  toDecimal(Latitude, 9, 6)\r",
+						"),",
+						"          Longitude = iif(  isNull(Longitude) || trim(toString(Longitude)) == '',   toDecimal(0.000000, 9, 6),   toDecimal(Longitude, 9, 6)),",
+						"          Location = iif(isNull(Location) || trim(Location) == '', '(0,0)', trim(Location)),",
+						"          FileName = $FName,",
+						"          LoadDate = currentUTC()) ~> CleanColumns",
+						"flattenViolations derive(Violations = regexReplace(\r",
+						"    regexReplace(Violations, '^\\\"', ''),\r",
+						"    '(?i)(- Comments:.*)',\r",
+						"    ''\r",
+						"  ),",
+						"          Comments = iif(\r",
+						"    regexMatch(Violations, 'Comments:'),\r",
+						"    regexReplace(regexReplace(Violations, '^.*Comments:', ''), '\\\"$', ''),\r",
+						"    'NA'\r",
+						")) ~> CleanViolations",
+						"CleanColumns foldDown(unroll(Violations),",
+						"     mapColumn(",
+						"          {Inspection ID},",
+						"          {DBA Name},",
+						"          {AKA Name},",
+						"          {License #},",
+						"          {Facility Type},",
+						"          Risk,",
+						"          Address,",
+						"          City,",
+						"          State,",
+						"          Zip,",
+						"          {Inspection Date},",
+						"          {Inspection Type},",
+						"          Results,",
+						"          Violations,",
+						"          Latitude,",
+						"          Longitude,",
+						"          Location,",
+						"          FileName,",
+						"          LoadDate",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> flattenViolations",
+						"CleanViolations derive(Code = iif(",
+						"    equals(trim(Violations), 'NA\"'),",
+						"    -1,",
+						"    toInteger(regexReplace(Violations, '^([0-9]+)\\\\..*', '$1'))",
+						"),",
+						"          Violations = iif(",
+						"    equals(trim(Violations), 'NA\"'),",
+						"    'NA',",
+						"    regexReplace(Violations, '^[0-9]+\\\\.', '')",
+						")) ~> SplitViolationsCode",
+						"SplitViolationsCode sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'parquet',",
+						"     partitionFileNames:[($Silver_FName)],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     mapColumn(",
+						"          INSPECTION_ID = {Inspection ID},",
+						"          DBA_NAME = {DBA Name},",
+						"          AKA_NAME = {AKA Name},",
+						"          LICENSE_NO = {License #},",
+						"          FACILITY_TYPE = {Facility Type},",
+						"          RISK = Risk,",
+						"          ADDRESS = Address,",
+						"          CITY = City,",
+						"          STATE = State,",
+						"          ZIP = Zip,",
+						"          INSPECTION_DATE = {Inspection Date},",
+						"          INSPECTION_TYPE = {Inspection Type},",
+						"          RESULTS = Results,",
+						"          VIOLATION_CODE = Code,",
+						"          VIOLATIONS = Violations,",
+						"          COMMENTS = Comments,",
+						"          LATITUDE = Latitude,",
+						"          LONGITUDE = Longitude,",
+						"          LOCATION = Location,",
+						"          FILENAME = FileName,",
+						"          LOADDATE = LoadDate",
+						"     ),",
+						"     partitionBy('hash', 1)) ~> sinkSilver"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_tsv')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_parquet')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/DF_CLEAN_DALLAS')]",
+			"type": "Microsoft.DataFactory/factories/dataflows",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"type": "MappingDataFlow",
+				"typeProperties": {
+					"sources": [
+						{
+							"dataset": {
+								"referenceName": "DS_ADLS_tsv",
+								"type": "DatasetReference"
+							},
+							"name": "sourceBronze"
+						}
+					],
+					"sinks": [
+						{
+							"dataset": {
+								"referenceName": "DS_ADLS_parquet",
+								"type": "DatasetReference"
+							},
+							"name": "sinkPQ"
+						}
+					],
+					"transformations": [
+						{
+							"name": "unpivotDescriptions"
+						},
+						{
+							"name": "selectDescriptions"
+						},
+						{
+							"name": "CleanColumns"
+						},
+						{
+							"name": "selectPoints"
+						},
+						{
+							"name": "unpivotPoints"
+						},
+						{
+							"name": "selectDetails"
+						},
+						{
+							"name": "unpivotDetails"
+						},
+						{
+							"name": "selectMemo"
+						},
+						{
+							"name": "unpivotMemo"
+						},
+						{
+							"name": "joinMemoToDetails"
+						},
+						{
+							"name": "derivedViolationMemoNumber"
+						},
+						{
+							"name": "deriveViolationDetailsNumber"
+						},
+						{
+							"name": "deriveViolationPointsNumber"
+						},
+						{
+							"name": "deriveViolationDescriptionNumber"
+						},
+						{
+							"name": "selectToDetails"
+						},
+						{
+							"name": "joinToPoints"
+						},
+						{
+							"name": "selectToDescription"
+						},
+						{
+							"name": "joinToDescription"
+						},
+						{
+							"name": "select1"
+						},
+						{
+							"name": "derivedColumns"
+						},
+						{
+							"name": "select"
+						},
+						{
+							"name": "aggregateDupes"
+						},
+						{
+							"name": "derivedColumnLocation"
+						},
+						{
+							"name": "derivedColumnMeta"
+						}
+					],
+					"scriptLines": [
+						"parameters{",
+						"     FName as string ('DallasDefault'),",
+						"     Silver_FName as string ('Default_dallas')",
+						"}",
+						"source(output(",
+						"          {Restaurant Name} as string,",
+						"          {Inspection Type} as string,",
+						"          {Inspection Date} as date,",
+						"          {Inspection Score} as short,",
+						"          {Street Number} as integer,",
+						"          {Street Name} as string,",
+						"          {Street Direction} as string,",
+						"          {Street Type} as string,",
+						"          {Street Unit} as string,",
+						"          {Street Address} as string,",
+						"          {Zip Code} as string,",
+						"          {Violation Description - 1} as string,",
+						"          {Violation Points - 1} as string,",
+						"          {Violation Detail - 1} as string,",
+						"          {Violation Memo - 1} as string,",
+						"          {Violation Description - 2} as string,",
+						"          {Violation Points - 2} as string,",
+						"          {Violation Detail - 2} as string,",
+						"          {Violation Memo - 2} as string,",
+						"          {Violation Description - 3} as string,",
+						"          {Violation Points - 3} as string,",
+						"          {Violation Detail - 3} as string,",
+						"          {Violation Memo - 3} as string,",
+						"          {Violation Description - 4} as string,",
+						"          {Violation Points - 4} as string,",
+						"          {Violation Detail - 4} as string,",
+						"          {Violation Memo - 4} as string,",
+						"          {Violation Description - 5} as string,",
+						"          {Violation Points - 5} as string,",
+						"          {Violation Detail - 5} as string,",
+						"          {Violation Memo - 5} as string,",
+						"          {Violation Description - 6} as string,",
+						"          {Violation Points - 6} as string,",
+						"          {Violation Detail - 6} as string,",
+						"          {Violation Memo - 6} as string,",
+						"          {Violation Description - 7} as string,",
+						"          {Violation Points - 7} as string,",
+						"          {Violation Detail - 7} as string,",
+						"          {Violation Memo - 7} as string,",
+						"          {Violation Description - 8} as string,",
+						"          {Violation Points - 8} as string,",
+						"          {Violation Detail - 8} as string,",
+						"          {Violation Memo - 8} as string,",
+						"          {Violation Description - 9} as string,",
+						"          {Violation Points - 9} as string,",
+						"          {Violation Detail - 9} as string,",
+						"          {Violation Memo - 9} as string,",
+						"          {Violation Description - 10} as string,",
+						"          {Violation Points - 10} as string,",
+						"          {Violation Detail - 10} as string,",
+						"          {Violation Memo - 10} as string,",
+						"          {Violation Description - 11} as string,",
+						"          {Violation Points - 11} as string,",
+						"          {Violation Detail - 11} as string,",
+						"          {Violation Memo - 11} as string,",
+						"          {Violation Description - 12} as string,",
+						"          {Violation Points - 12} as string,",
+						"          {Violation Detail - 12} as string,",
+						"          {Violation Memo - 12} as string,",
+						"          {Violation Description - 13} as string,",
+						"          {Violation Points - 13} as string,",
+						"          {Violation Detail - 13} as string,",
+						"          {Violation Memo - 13} as string,",
+						"          {Violation Description - 14} as string,",
+						"          {Violation Points - 14} as string,",
+						"          {Violation Detail - 14} as string,",
+						"          {Violation Memo - 14} as string,",
+						"          {Violation Description - 15} as string,",
+						"          {Violation Points - 15} as string,",
+						"          {Violation Detail - 15} as string,",
+						"          {Violation Memo - 15} as string,",
+						"          {Violation Description - 16} as string,",
+						"          {Violation Points - 16} as string,",
+						"          {Violation Detail - 16} as string,",
+						"          {Violation Memo - 16} as string,",
+						"          {Violation Description - 17} as string,",
+						"          {Violation Points - 17} as string,",
+						"          {Violation Detail - 17} as string,",
+						"          {Violation Memo - 17} as string,",
+						"          {Violation Description - 18} as string,",
+						"          {Violation Points - 18} as string,",
+						"          {Violation Detail - 18} as string,",
+						"          {Violation Memo - 18} as string,",
+						"          {Violation Description - 19} as string,",
+						"          {Violation Points - 19} as string,",
+						"          {Violation Detail - 19} as string,",
+						"          {Violation Memo - 19} as string,",
+						"          {Violation Description - 20} as string,",
+						"          {Violation Points - 20} as string,",
+						"          {Violation Detail - 20} as string,",
+						"          {Violation  Memo - 20} as string,",
+						"          {Violation Description - 21} as string,",
+						"          {Violation Points - 21} as string,",
+						"          {Violation Detail - 21} as string,",
+						"          {Violation Memo - 21} as string,",
+						"          {Violation Description - 22} as string,",
+						"          {Violation Points - 22} as string,",
+						"          {Violation Detail - 22} as string,",
+						"          {Violation Memo - 22} as string,",
+						"          {Violation Description - 23} as string,",
+						"          {Violation Points - 23} as string,",
+						"          {Violation Detail - 23} as string,",
+						"          {Violation Memo - 23} as string,",
+						"          {Violation Description - 24} as string,",
+						"          {Violation Points - 24} as string,",
+						"          {Violation Detail - 24} as string,",
+						"          {Violation Memo - 24} as string,",
+						"          {Violation Description - 25} as string,",
+						"          {Violation Points - 25} as string,",
+						"          {Violation Detail - 25} as string,",
+						"          {Violation Memo - 25} as string,",
+						"          {Inspection Month} as string,",
+						"          {Inspection Year} as string,",
+						"          {Lat Long Location} as string",
+						"     ),",
+						"     allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     ignoreNoFilesFound: false) ~> sourceBronze",
+						"selectDescriptions unpivot(output(",
+						"          Violation_Description_Number as string,",
+						"          Violation_Description as string",
+						"     ),",
+						"     ungroupBy({Restaurant Name},",
+						"          {Inspection Type},",
+						"          {Inspection Date},",
+						"          {Inspection Score},",
+						"          {Street Number},",
+						"          {Street Name},",
+						"          {Street Direction},",
+						"          {Street Type},",
+						"          {Street Unit},",
+						"          {Street Address},",
+						"          {Zip Code},",
+						"          {Inspection Month},",
+						"          {Inspection Year},",
+						"          {Lat Long Location}),",
+						"     lateral: false,",
+						"     ignoreNullPivots: false) ~> unpivotDescriptions",
+						"CleanColumns select(mapColumn(",
+						"          {Restaurant Name},",
+						"          {Inspection Type},",
+						"          {Inspection Date},",
+						"          {Inspection Score},",
+						"          {Street Number},",
+						"          {Street Name},",
+						"          {Street Direction},",
+						"          {Street Type},",
+						"          {Street Unit},",
+						"          {Street Address},",
+						"          {Zip Code},",
+						"          {Inspection Month},",
+						"          {Inspection Year},",
+						"          {Lat Long Location},",
+						"          each(patternMatch(`Violation Description .*`),",
+						"               $0 = $$)",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> selectDescriptions",
+						"sourceBronze derive({Restaurant Name} = iif(isNull({Restaurant Name}) || trim({Restaurant Name}) == '', 'Unknown', trim({Restaurant Name})),",
+						"          {Inspection Type} = iif(isNull({Inspection Type}) || trim({Inspection Type}) == '', 'Unknown', trim({Inspection Type})),",
+						"          {Inspection Date} = iif(isNull({Inspection Date}) || trim(toString({Inspection Date})) == '', toDate('31-12-9999', 'dd-MM-yyyy'), {Inspection Date}),",
+						"          {Inspection Score} = toInteger({Inspection Score}),",
+						"          {Street Number} = iif(isNull({Street Number}) || {Street Number} == 0, 0, toInteger({Street Number})),",
+						"          {Street Name} = iif(isNull({Street Name}) || trim({Street Name}) == '', 'Unknown', trim({Street Name})),",
+						"          {Street Direction} = iif(isNull({Street Direction}) || trim({Street Direction}) == '', 'NA', trim({Street Direction})),",
+						"          {Street Type} = iif(isNull({Street Type}) || trim({Street Type}) == '', 'Unknown', trim({Street Type})),",
+						"          {Street Unit} = iif(isNull({Street Unit}) || trim({Street Unit}) == '', 'NA', trim({Street Unit})),",
+						"          {Street Address} = iif(isNull({Street Address}) || trim({Street Address}) == '', 'Unknown', trim({Street Address})),",
+						"          {Zip Code} = iif(isNull({Zip Code}) || trim({Zip Code}) == '', '-1', trim({Zip Code})),",
+						"          {Inspection Month} = iif(isNull({Inspection Month}) || trim({Inspection Month}) == '', 'NA', trim({Inspection Month})),",
+						"          {Inspection Year} = iif(isNull({Inspection Year}) || trim({Inspection Year}) == '', 'NA', trim({Inspection Year}))) ~> CleanColumns",
+						"CleanColumns select(mapColumn(",
+						"          {Restaurant Name},",
+						"          {Inspection Type},",
+						"          {Inspection Date},",
+						"          {Inspection Score},",
+						"          {Street Number},",
+						"          {Street Name},",
+						"          {Street Direction},",
+						"          {Street Type},",
+						"          {Street Unit},",
+						"          {Street Address},",
+						"          {Zip Code},",
+						"          {Inspection Month},",
+						"          {Inspection Year},",
+						"          {Lat Long Location},",
+						"          each(patternMatch(`Violation Points .*`),",
+						"               $0 = $$)",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> selectPoints",
+						"selectPoints unpivot(output(",
+						"          Violation_Points_Number as string,",
+						"          Violation_Points as string",
+						"     ),",
+						"     ungroupBy({Restaurant Name},",
+						"          {Inspection Type},",
+						"          {Inspection Date},",
+						"          {Inspection Score},",
+						"          {Street Number},",
+						"          {Street Name},",
+						"          {Street Direction},",
+						"          {Street Type},",
+						"          {Street Unit},",
+						"          {Street Address},",
+						"          {Zip Code},",
+						"          {Inspection Month},",
+						"          {Inspection Year},",
+						"          {Lat Long Location}),",
+						"     lateral: false,",
+						"     ignoreNullPivots: false) ~> unpivotPoints",
+						"CleanColumns select(mapColumn(",
+						"          {Restaurant Name},",
+						"          {Inspection Type},",
+						"          {Inspection Date},",
+						"          {Inspection Score},",
+						"          {Street Number},",
+						"          {Street Name},",
+						"          {Street Direction},",
+						"          {Street Type},",
+						"          {Street Unit},",
+						"          {Street Address},",
+						"          {Zip Code},",
+						"          {Inspection Month},",
+						"          {Inspection Year},",
+						"          {Lat Long Location},",
+						"          each(patternMatch(`Violation Detail .*`),",
+						"               $0 = $$)",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> selectDetails",
+						"selectDetails unpivot(output(",
+						"          Violation_Detail_Number as string,",
+						"          Violation_Detail as string",
+						"     ),",
+						"     ungroupBy({Restaurant Name},",
+						"          {Inspection Type},",
+						"          {Inspection Date},",
+						"          {Inspection Score},",
+						"          {Street Number},",
+						"          {Street Name},",
+						"          {Street Direction},",
+						"          {Street Type},",
+						"          {Street Unit},",
+						"          {Street Address},",
+						"          {Zip Code},",
+						"          {Inspection Month},",
+						"          {Inspection Year},",
+						"          {Lat Long Location}),",
+						"     lateral: false,",
+						"     ignoreNullPivots: false) ~> unpivotDetails",
+						"CleanColumns select(mapColumn(",
+						"          {Violation  Memo - 20},",
+						"          {Restaurant Name},",
+						"          {Inspection Type},",
+						"          {Inspection Date},",
+						"          {Inspection Score},",
+						"          {Street Number},",
+						"          {Street Name},",
+						"          {Street Direction},",
+						"          {Street Type},",
+						"          {Street Unit},",
+						"          {Street Address},",
+						"          {Zip Code},",
+						"          {Inspection Month},",
+						"          {Inspection Year},",
+						"          {Lat Long Location},",
+						"          each(patternMatch(`Violation Memo .*`),",
+						"               $0 = $$)",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> selectMemo",
+						"selectMemo unpivot(output(",
+						"          Violation_Memo_Number as string,",
+						"          Violation_Memo as string",
+						"     ),",
+						"     ungroupBy({Restaurant Name},",
+						"          {Inspection Type},",
+						"          {Inspection Date},",
+						"          {Inspection Score},",
+						"          {Street Number},",
+						"          {Street Name},",
+						"          {Street Direction},",
+						"          {Street Type},",
+						"          {Street Unit},",
+						"          {Street Address},",
+						"          {Zip Code},",
+						"          {Inspection Month},",
+						"          {Inspection Year},",
+						"          {Lat Long Location}),",
+						"     lateral: false,",
+						"     ignoreNullPivots: false) ~> unpivotMemo",
+						"derivedViolationMemoNumber, deriveViolationDetailsNumber join(unpivotMemo@{Restaurant Name} == unpivotDetails@{Restaurant Name}",
+						"     && unpivotMemo@{Inspection Type} == unpivotDetails@{Inspection Type}",
+						"     && unpivotMemo@{Inspection Date} == unpivotDetails@{Inspection Date}",
+						"     && unpivotMemo@{Inspection Score} == unpivotDetails@{Inspection Score}",
+						"     && unpivotMemo@{Street Number} == unpivotDetails@{Street Number}",
+						"     && unpivotMemo@{Street Name} == unpivotDetails@{Street Name}",
+						"     && unpivotMemo@{Street Direction} == unpivotDetails@{Street Direction}",
+						"     && unpivotMemo@{Street Type} == unpivotDetails@{Street Type}",
+						"     && unpivotMemo@{Street Unit} == unpivotDetails@{Street Unit}",
+						"     && unpivotMemo@{Street Address} == unpivotDetails@{Street Address}",
+						"     && unpivotMemo@{Zip Code} == unpivotDetails@{Zip Code}",
+						"     && unpivotMemo@{Inspection Month} == unpivotDetails@{Inspection Month}",
+						"     && unpivotMemo@{Inspection Year} == unpivotDetails@{Inspection Year}",
+						"     && unpivotMemo@{Lat Long Location} == unpivotDetails@{Lat Long Location}",
+						"     && Violation_Memo_Number == Violation_Detail_Number,",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> joinMemoToDetails",
+						"unpivotMemo derive(Violation_Memo_Number = toInteger(iif(",
+						"",
+						"     Violation_Memo_Number == 'Violation  Memo - 20', ",
+						"",
+						"     replace(Violation_Memo_Number, 'Violation  Memo - ', ''),",
+						"",
+						"     replace(Violation_Memo_Number, 'Violation Memo - ', '')",
+						"",
+						" ))) ~> derivedViolationMemoNumber",
+						"unpivotDetails derive(Violation_Detail_Number = toInteger(replace(Violation_Detail_Number, 'Violation Detail -', ''))) ~> deriveViolationDetailsNumber",
+						"unpivotPoints derive(Violation_Points_Number = toInteger(replace(Violation_Points_Number, 'Violation Points -', ''))) ~> deriveViolationPointsNumber",
+						"unpivotDescriptions derive(Violation_Description_Number = toInteger(replace(Violation_Description_Number, 'Violation Description -', ''))) ~> deriveViolationDescriptionNumber",
+						"joinMemoToDetails select(mapColumn(",
+						"          Violation_Memo_Number,",
+						"          Violation_Memo,",
+						"          {Restaurant Name} = unpivotDetails@{Restaurant Name},",
+						"          {Inspection Type} = unpivotDetails@{Inspection Type},",
+						"          {Inspection Date} = unpivotDetails@{Inspection Date},",
+						"          {Inspection Score} = unpivotDetails@{Inspection Score},",
+						"          {Street Number} = unpivotDetails@{Street Number},",
+						"          {Street Name} = unpivotDetails@{Street Name},",
+						"          {Street Direction} = unpivotDetails@{Street Direction},",
+						"          {Street Type} = unpivotDetails@{Street Type},",
+						"          {Street Unit} = unpivotDetails@{Street Unit},",
+						"          {Street Address} = unpivotDetails@{Street Address},",
+						"          {Zip Code} = unpivotDetails@{Zip Code},",
+						"          {Inspection Month} = unpivotDetails@{Inspection Month},",
+						"          {Inspection Year} = unpivotDetails@{Inspection Year},",
+						"          {Lat Long Location} = unpivotDetails@{Lat Long Location},",
+						"          Violation_Detail_Number,",
+						"          Violation_Detail",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> selectToDetails",
+						"selectToDetails, deriveViolationPointsNumber join(Violation_Memo_Number == Violation_Points_Number",
+						"     && selectToDetails@{Restaurant Name} == unpivotPoints@{Restaurant Name}",
+						"     && selectToDetails@{Inspection Type} == unpivotPoints@{Inspection Type}",
+						"     && selectToDetails@{Inspection Date} == unpivotPoints@{Inspection Date}",
+						"     && selectToDetails@{Inspection Score} == unpivotPoints@{Inspection Score}",
+						"     && selectToDetails@{Street Number} == unpivotPoints@{Street Number}",
+						"     && selectToDetails@{Street Name} == unpivotPoints@{Street Name}",
+						"     && selectToDetails@{Street Direction} == unpivotPoints@{Street Direction}",
+						"     && selectToDetails@{Street Type} == unpivotPoints@{Street Type}",
+						"     && selectToDetails@{Street Unit} == unpivotPoints@{Street Unit}",
+						"     && selectToDetails@{Street Address} == unpivotPoints@{Street Address}",
+						"     && selectToDetails@{Zip Code} == unpivotPoints@{Zip Code}",
+						"     && selectToDetails@{Inspection Month} == unpivotPoints@{Inspection Month}",
+						"     && selectToDetails@{Inspection Year} == unpivotPoints@{Inspection Year}",
+						"     && selectToDetails@{Lat Long Location} == unpivotPoints@{Lat Long Location},",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> joinToPoints",
+						"joinToPoints select(mapColumn(",
+						"          Violation_Memo_Number,",
+						"          Violation_Memo,",
+						"          Violation_Detail_Number,",
+						"          Violation_Detail,",
+						"          {Restaurant Name} = unpivotPoints@{Restaurant Name},",
+						"          {Inspection Type} = unpivotPoints@{Inspection Type},",
+						"          {Inspection Date} = unpivotPoints@{Inspection Date},",
+						"          {Inspection Score} = unpivotPoints@{Inspection Score},",
+						"          {Street Number} = unpivotPoints@{Street Number},",
+						"          {Street Name} = unpivotPoints@{Street Name},",
+						"          {Street Direction} = unpivotPoints@{Street Direction},",
+						"          {Street Type} = unpivotPoints@{Street Type},",
+						"          {Street Unit} = unpivotPoints@{Street Unit},",
+						"          {Street Address} = unpivotPoints@{Street Address},",
+						"          {Zip Code} = unpivotPoints@{Zip Code},",
+						"          {Inspection Month} = unpivotPoints@{Inspection Month},",
+						"          {Inspection Year} = unpivotPoints@{Inspection Year},",
+						"          {Lat Long Location} = unpivotPoints@{Lat Long Location},",
+						"          Violation_Points_Number,",
+						"          Violation_Points",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> selectToDescription",
+						"selectToDescription, deriveViolationDescriptionNumber join(Violation_Memo_Number == Violation_Description_Number",
+						"     && selectToDescription@{Restaurant Name} == unpivotDescriptions@{Restaurant Name}",
+						"     && selectToDescription@{Inspection Type} == unpivotDescriptions@{Inspection Type}",
+						"     && selectToDescription@{Inspection Date} == unpivotDescriptions@{Inspection Date}",
+						"     && selectToDescription@{Inspection Score} == unpivotDescriptions@{Inspection Score}",
+						"     && selectToDescription@{Street Number} == unpivotDescriptions@{Street Number}",
+						"     && selectToDescription@{Street Name} == unpivotDescriptions@{Street Name}",
+						"     && selectToDescription@{Street Direction} == unpivotDescriptions@{Street Direction}",
+						"     && selectToDescription@{Street Type} == unpivotDescriptions@{Street Type}",
+						"     && selectToDescription@{Street Unit} == unpivotDescriptions@{Street Unit}",
+						"     && selectToDescription@{Street Address} == unpivotDescriptions@{Street Address}",
+						"     && selectToDescription@{Zip Code} == unpivotDescriptions@{Zip Code}",
+						"     && selectToDescription@{Inspection Month} == unpivotDescriptions@{Inspection Month}",
+						"     && selectToDescription@{Inspection Year} == unpivotDescriptions@{Inspection Year}",
+						"     && selectToDescription@{Lat Long Location} == unpivotDescriptions@{Lat Long Location},",
+						"     joinType:'inner',",
+						"     matchType:'exact',",
+						"     ignoreSpaces: false,",
+						"     broadcast: 'auto')~> joinToDescription",
+						"joinToDescription select(mapColumn(",
+						"          Violation_Number = Violation_Memo_Number,",
+						"          Violation_Description,",
+						"          Violation_Points,",
+						"          Violation_Memo,",
+						"          Violation_Detail,",
+						"          {Restaurant Name} = unpivotDescriptions@{Restaurant Name},",
+						"          {Inspection Type} = unpivotDescriptions@{Inspection Type},",
+						"          {Inspection Date} = unpivotDescriptions@{Inspection Date},",
+						"          {Inspection Score} = unpivotDescriptions@{Inspection Score},",
+						"          {Street Number} = unpivotDescriptions@{Street Number},",
+						"          {Street Name} = unpivotDescriptions@{Street Name},",
+						"          {Street Direction} = unpivotDescriptions@{Street Direction},",
+						"          {Street Type} = unpivotDescriptions@{Street Type},",
+						"          {Street Unit} = unpivotDescriptions@{Street Unit},",
+						"          {Street Address} = unpivotDescriptions@{Street Address},",
+						"          {Zip Code} = unpivotDescriptions@{Zip Code},",
+						"          {Inspection Month} = unpivotDescriptions@{Inspection Month},",
+						"          {Inspection Year} = unpivotDescriptions@{Inspection Year},",
+						"          {Lat Long Location} = unpivotDescriptions@{Lat Long Location}",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> select1",
+						"select1 derive(Violation_Code = iif(replace(Violation_Description, '\"', '') == 'NA', 'NA', iifNull(regexExtract(Violation_Description, '\\\\*([0-9.]+)', 1), 'NA')),",
+						"          Violation_Description = iif(Violation_Description == '\"\"\"NA\"\"\"', 'NA', trim(replace(regexReplace(replace(Violation_Description, '\"', ''), '^\\\\*\\\\s*([0-9.]+)', ''), '\\\\s+', ' '))),",
+						"          Violation_Points = iif(Violation_Points == '\"\"\"NA\"\"\"', -1, toInteger(replace(Violation_Points, '\"', ''))),",
+						"          Violation_Detail = trim(",
+						"",
+						"   replace(",
+						"",
+						"     replace(",
+						"",
+						"       replace(",
+						"",
+						"         replace(",
+						"",
+						"           replace(",
+						"",
+						"             replace(",
+						"",
+						"               replace(Violation_Detail, '\"', ''),",
+						"",
+						"               '\\t', ' '",
+						"",
+						"             ),",
+						"",
+						"             '\\n', ' '",
+						"",
+						"           ),",
+						"",
+						"           '\\r', ' '",
+						"",
+						"         ),",
+						"",
+						"         '    ', ' '",
+						"",
+						"       ),",
+						"",
+						"       '  ', ' '",
+						"",
+						"     ),",
+						"",
+						"     '  ', ' '",
+						"",
+						"   )",
+						"",
+						" ),",
+						"          Violation_Memo = trim(",
+						"",
+						"   replace(",
+						"",
+						"     replace(",
+						"",
+						"       replace(",
+						"",
+						"         replace(",
+						"",
+						"           replace(",
+						"",
+						"             replace(",
+						"",
+						"               replace(Violation_Memo, '\"', ''),",
+						"",
+						"               '\\t', ' '",
+						"",
+						"             ),",
+						"",
+						"             '\\n', ' '",
+						"",
+						"           ),",
+						"",
+						"           '\\r', ' '",
+						"",
+						"         ),",
+						"",
+						"         '    ', ' '",
+						"",
+						"       ),",
+						"",
+						"       '  ', ' '",
+						"",
+						"     ),",
+						"",
+						"     '  ', ' '",
+						"",
+						"   )",
+						"",
+						" ),",
+						"          Latitude = iif(",
+						"",
+						"   {Lat Long Location} == '\"\"\"NA\"\"\"',",
+						"",
+						"   toDecimal(0.000000, 9, 6),",
+						"",
+						"   toDecimal(",
+						"",
+						"     toFloat(",
+						"",
+						"       regexExtract(",
+						"",
+						"         replace(replace({Lat Long Location}, '\"', ''), '\\r\\n', ''), ",
+						"",
+						"         '\\\\(([-+]?[0-9]*\\\\.?[0-9]+),', ",
+						"",
+						"         1",
+						"",
+						"       )",
+						"",
+						"     ), 9, 6",
+						"",
+						"   )",
+						"",
+						" ),",
+						"          Longitude = iif(",
+						"",
+						"   {Lat Long Location} == '\"\"\"NA\"\"\"',",
+						"",
+						"   toDecimal(0.000000, 9, 6),",
+						"",
+						"   toDecimal(",
+						"",
+						"     toFloat(",
+						"",
+						"       regexExtract(",
+						"",
+						"         replace(replace({Lat Long Location}, '\"', ''), '\\r\\n', ''), ",
+						"",
+						"         ',\\\\s*([-+]?[0-9]*\\\\.?[0-9]+)\\\\)', ",
+						"",
+						"         1",
+						"",
+						"       )",
+						"",
+						"     ), 9, 6",
+						"",
+						"   )",
+						"",
+						" )) ~> derivedColumns",
+						"derivedColumnLocation select(mapColumn(",
+						"          Violation_Number,",
+						"          Violation_Description,",
+						"          Violation_Points,",
+						"          Violation_Memo,",
+						"          Violation_Detail,",
+						"          {Restaurant Name},",
+						"          {Inspection Type},",
+						"          {Inspection Date},",
+						"          {Inspection Score},",
+						"          {Street Number},",
+						"          {Street Name},",
+						"          {Street Direction},",
+						"          {Street Type},",
+						"          {Street Unit},",
+						"          {Street Address},",
+						"          {Zip Code},",
+						"          {Inspection Month},",
+						"          {Inspection Year},",
+						"          Violation_Code,",
+						"          Latitude,",
+						"          Longitude",
+						"     ),",
+						"     skipDuplicateMapInputs: false,",
+						"     skipDuplicateMapOutputs: false) ~> select",
+						"select aggregate(groupBy(Violation_Number,",
+						"          Violation_Description,",
+						"          Violation_Points,",
+						"          Violation_Memo,",
+						"          Violation_Detail,",
+						"          {Restaurant Name},",
+						"          {Inspection Type},",
+						"          {Inspection Date},",
+						"          {Inspection Score},",
+						"          {Street Number},",
+						"          {Street Name},",
+						"          {Street Direction},",
+						"          {Street Type},",
+						"          {Street Unit},",
+						"          {Street Address},",
+						"          {Zip Code},",
+						"          {Inspection Month},",
+						"          {Inspection Year},",
+						"          Violation_Code,",
+						"          Latitude,",
+						"          Longitude),",
+						"     dummy = first(Violation_Number)) ~> aggregateDupes",
+						"derivedColumns derive(Latitude = iif(isNull(Latitude),0.000000,toFloat(Latitude)),",
+						"          Longitude = iif(isNull(Longitude),0.000000,toFloat(Longitude))) ~> derivedColumnLocation",
+						"aggregateDupes derive(FileName = $FName,",
+						"          LoadDate = currentUTC()) ~> derivedColumnMeta",
+						"derivedColumnMeta sink(allowSchemaDrift: true,",
+						"     validateSchema: false,",
+						"     format: 'parquet',",
+						"     partitionFileNames:[($Silver_FName)],",
+						"     umask: 0022,",
+						"     preCommands: [],",
+						"     postCommands: [],",
+						"     mapColumn(",
+						"          VIOLATION_NUMBER = Violation_Number,",
+						"          VIOLATION_DESCRIPTION = Violation_Description,",
+						"          VIOLATION_POINTS = Violation_Points,",
+						"          VIOLATION_MEMO = Violation_Memo,",
+						"          VIOLATION_DETAIL = Violation_Detail,",
+						"          RESTAURANT_NAME = {Restaurant Name},",
+						"          INSPECTION_TYPE = {Inspection Type},",
+						"          INSPECTION_DATE = {Inspection Date},",
+						"          INSPECTION_SCORE = {Inspection Score},",
+						"          STREET_NUMBER = {Street Number},",
+						"          STREET_NAME = {Street Name},",
+						"          STREET_DIRECTION = {Street Direction},",
+						"          STREET_TYPE = {Street Type},",
+						"          STREET_UNIT = {Street Unit},",
+						"          STREET_ADDRESS = {Street Address},",
+						"          ZIP_CODE = {Zip Code},",
+						"          INSPECTION_MONTH = {Inspection Month},",
+						"          INSPECTION_YEAR = {Inspection Year},",
+						"          VIOLATION_CODE = Violation_Code,",
+						"          LATITUDE = Latitude,",
+						"          LONGITUDE = Longitude,",
+						"          FILENAME = FileName,",
+						"          LOADDATE = LoadDate",
+						"     ),",
+						"     partitionBy('hash', 1)) ~> sinkPQ"
+					]
+				}
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_tsv')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_parquet')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_CHICAGO_STG_lOAD')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DF_CLEANING_CHICAGO",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_CLEAN_CHICAGO",
+								"type": "DataFlowReference",
+								"parameters": {
+									"FName": "'Chicago_2025-present_quoted.tsv'",
+									"Silver_FName": "'Chicago_2025-present.parquet'"
+								},
+								"datasetParameters": {
+									"sourceBronze": {
+										"FileName": "Chicago_2025-present_quoted.tsv"
+									},
+									"sinkSilver": {
+										"FileName": "Chicago_2025-present.parquet"
+									}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "PQT_SF",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "DF_CLEANING_CHICAGO",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "ParquetSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "ParquetReadSettings"
+								}
+							},
+							"sink": {
+								"type": "SnowflakeV2Sink",
+								"importSettings": {
+									"type": "SnowflakeImportCopyCommand"
+								}
+							},
+							"enableStaging": true,
+							"stagingSettings": {
+								"linkedServiceName": {
+									"referenceName": "LS_AzureBlobStorage",
+									"type": "LinkedServiceReference"
+								},
+								"path": "stg"
+							},
+							"translator": {
+								"type": "TabularTranslator",
+								"mappings": [
+									{
+										"source": {
+											"name": "INSPECTION_ID",
+											"type": "Int32"
+										},
+										"sink": {
+											"name": "INSPECTION_ID",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"name": "DBA_NAME",
+											"type": "String"
+										},
+										"sink": {
+											"name": "DBA_NAME",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "AKA_NAME",
+											"type": "String"
+										},
+										"sink": {
+											"name": "AKA_NAME",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "LICENSE_NO",
+											"type": "Int32"
+										},
+										"sink": {
+											"name": "LICENSE_NO",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"name": "FACILITY_TYPE",
+											"type": "String"
+										},
+										"sink": {
+											"name": "FACILITY_TYPE",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "RISK",
+											"type": "String"
+										},
+										"sink": {
+											"name": "RISK",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "ADDRESS",
+											"type": "String"
+										},
+										"sink": {
+											"name": "ADDRESS",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "CITY",
+											"type": "String"
+										},
+										"sink": {
+											"name": "CITY",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "STATE",
+											"type": "String"
+										},
+										"sink": {
+											"name": "STATE",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "ZIP",
+											"type": "Int32"
+										},
+										"sink": {
+											"name": "ZIP",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"name": "INSPECTION_DATE",
+											"type": "DateTime"
+										},
+										"sink": {
+											"name": "INSPECTION_DATE",
+											"type": "DateTime"
+										}
+									},
+									{
+										"source": {
+											"name": "INSPECTION_TYPE",
+											"type": "String"
+										},
+										"sink": {
+											"name": "INSPECTION_TYPE",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "RESULTS",
+											"type": "String"
+										},
+										"sink": {
+											"name": "RESULTS",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "VIOlATION_CODE"
+										},
+										"sink": {
+											"name": "VIOLATION_CODE",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"name": "VIOLATIONS",
+											"type": "String"
+										},
+										"sink": {
+											"name": "VIOLATIONS",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "COMMENTS",
+											"type": "String"
+										},
+										"sink": {
+											"name": "COMMENTS",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "LATITUDE",
+											"type": "Decimal"
+										},
+										"sink": {
+											"name": "LATITUDE",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"name": "LONGITUDE",
+											"type": "Decimal"
+										},
+										"sink": {
+											"name": "LONGITUDE",
+											"type": "Int64"
+										}
+									},
+									{
+										"source": {
+											"name": "LOCATION",
+											"type": "String"
+										},
+										"sink": {
+											"name": "LOCATION",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "FILENAME",
+											"type": "String"
+										},
+										"sink": {
+											"name": "FILENAME",
+											"type": "String"
+										}
+									},
+									{
+										"source": {
+											"name": "LOADDATE",
+											"type": "DateTime"
+										},
+										"sink": {
+											"name": "LOADDATE",
+											"type": "DateTime"
+										}
+									}
+								]
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_ADLS_parquet",
+								"type": "DatasetReference",
+								"parameters": {
+									"FileName": "Chicago_2025-present.parquet"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Snowflake",
+								"type": "DatasetReference",
+								"parameters": {
+									"SchemaName": "STG",
+									"TableName": "STG_CHICAGO"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DF_CLEAN_CHICAGO')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_parquet')]",
+				"[concat(variables('factoryId'), '/datasets/DS_Snowflake')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureBlobStorage')]"
+			]
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_DALLAS_STG_LOAD')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DF_CLEAN_DALLAS",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_CLEAN_DALLAS",
+								"type": "DataFlowReference",
+								"parameters": {
+									"FName": "'Dallas_2025-present_quoted.tsv'",
+									"Silver_FName": "'Dallas_2025-present.parquet'"
+								},
+								"datasetParameters": {
+									"sourceBronze": {
+										"FileName": "Dallas_2025-present_quoted.tsv"
+									},
+									"sinkPQ": {
+										"FileName": "Dallas_2025-present.parquet"
+									}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "PQT_SF",
+						"type": "Copy",
+						"dependsOn": [
+							{
+								"activity": "DF_CLEAN_DALLAS",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"source": {
+								"type": "ParquetSource",
+								"storeSettings": {
+									"type": "AzureBlobFSReadSettings",
+									"recursive": true,
+									"enablePartitionDiscovery": false
+								},
+								"formatSettings": {
+									"type": "ParquetReadSettings"
+								}
+							},
+							"sink": {
+								"type": "SnowflakeV2Sink",
+								"importSettings": {
+									"type": "SnowflakeImportCopyCommand"
+								}
+							},
+							"enableStaging": true,
+							"stagingSettings": {
+								"linkedServiceName": {
+									"referenceName": "LS_AzureBlobStorage",
+									"type": "LinkedServiceReference"
+								},
+								"path": "stg"
+							}
+						},
+						"inputs": [
+							{
+								"referenceName": "DS_ADLS_parquet",
+								"type": "DatasetReference",
+								"parameters": {
+									"FileName": "Dallas_2025-present.parquet"
+								}
+							}
+						],
+						"outputs": [
+							{
+								"referenceName": "DS_Snowflake",
+								"type": "DatasetReference",
+								"parameters": {
+									"SchemaName": "STG",
+									"TableName": "STG_DALLAS"
+								}
+							}
+						]
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"annotations": []
+			},
+			"dependsOn": [
+				"[concat(variables('factoryId'), '/dataflows/DF_CLEAN_DALLAS')]",
+				"[concat(variables('factoryId'), '/datasets/DS_ADLS_parquet')]",
+				"[concat(variables('factoryId'), '/datasets/DS_Snowflake')]",
+				"[concat(variables('factoryId'), '/linkedServices/LS_AzureBlobStorage')]"
+			]
+		}
+	]
+}

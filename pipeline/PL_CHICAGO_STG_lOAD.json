@@ -21,6 +21,14 @@
 						"parameters": {
 							"FName": "'Chicago_2025-present_quoted.tsv'",
 							"Silver_FName": "'Chicago_2025-present.parquet'"
+						},
+						"datasetParameters": {
+							"sourceBronze": {
+								"FileName": "Chicago_2025-present_quoted.tsv"
+							},
+							"sinkSilver": {
+								"FileName": "Chicago_2025-present.parquet"
+							}
 						}
 					},
 					"compute": {

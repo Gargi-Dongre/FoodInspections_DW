@@ -1,0 +1,110 @@
+{
+	"name": "PL_DALLAS_STG_LOAD",
+	"properties": {
+		"activities": [
+			{
+				"name": "DF_CLEAN_DALLAS",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "DF_CLEAN_DALLAS",
+						"type": "DataFlowReference",
+						"parameters": {
+							"FName": "'Dallas_2025-present_quoted.tsv'",
+							"Silver_FName": "'Dallas_2025-present.parquet'"
+						},
+						"datasetParameters": {
+							"sourceBronze": {
+								"FileName": "Dallas_2025-present_quoted.tsv"
+							},
+							"sinkPQ": {
+								"FileName": "Dallas_2025-present.parquet"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "PQT_SF",
+				"type": "Copy",
+				"dependsOn": [
+					{
+						"activity": "DF_CLEAN_DALLAS",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"source": {
+						"type": "ParquetSource",
+						"storeSettings": {
+							"type": "AzureBlobFSReadSettings",
+							"recursive": true,
+							"enablePartitionDiscovery": false
+						},
+						"formatSettings": {
+							"type": "ParquetReadSettings"
+						}
+					},
+					"sink": {
+						"type": "SnowflakeV2Sink",
+						"importSettings": {
+							"type": "SnowflakeImportCopyCommand"
+						}
+					},
+					"enableStaging": true,
+					"stagingSettings": {
+						"linkedServiceName": {
+							"referenceName": "LS_AzureBlobStorage",
+							"type": "LinkedServiceReference"
+						},
+						"path": "stg"
+					}
+				},
+				"inputs": [
+					{
+						"referenceName": "DS_ADLS_parquet",
+						"type": "DatasetReference",
+						"parameters": {
+							"FileName": "Dallas_2025-present.parquet"
+						}
+					}
+				],
+				"outputs": [
+					{
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference",
+						"parameters": {
+							"SchemaName": "STG",
+							"TableName": "STG_DALLAS"
+						}
+					}
+				]
+			}
+		],
+		"annotations": []
+	}
+}

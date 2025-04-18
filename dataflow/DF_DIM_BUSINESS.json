@@ -170,7 +170,7 @@
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> selectColumnsDallas",
-				"selectColumnsDallas derive(AKA_NAME = 'NA',",
+				"selectColumnsDallas derive(AKA_NAME = 'Not Applicable',",
 				"          SOURCE_SYSTEM = 'DALLAS') ~> derivedColumn",
 				"derivedColumnSSystem, derivedColumn union(byName: true)~> union",
 				"union, sourceDimMaxSK join(1==1,",

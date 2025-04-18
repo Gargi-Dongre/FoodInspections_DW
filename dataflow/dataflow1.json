@@ -1,0 +1,192 @@
+{
+	"name": "dataflow1",
+	"properties": {
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceSTGCHICAGO"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourcestgDALLAS"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceDIMViolation"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceMaxSK"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceFACT"
+				}
+			],
+			"sinks": [],
+			"transformations": [
+				{
+					"name": "joinDIMVIOLATION"
+				},
+				{
+					"name": "joinFACT"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "joinToDIMViolation"
+				},
+				{
+					"name": "joinToFact"
+				}
+			],
+			"scriptLines": [
+				"source(output(",
+				"          INSPECTION_ID as decimal(10,0),",
+				"          DBA_NAME as string,",
+				"          AKA_NAME as string,",
+				"          LICENSE_NO as decimal(10,0),",
+				"          FACILITY_TYPE as string,",
+				"          RISK as string,",
+				"          ADDRESS as string,",
+				"          CITY as string,",
+				"          STATE as string,",
+				"          ZIP as decimal(38,0),",
+				"          INSPECTION_DATE as date,",
+				"          INSPECTION_TYPE as string,",
+				"          RESULTS as string,",
+				"          VIOLATION_CODE as decimal(38,0),",
+				"          VIOLATIONS as string,",
+				"          COMMENTS as string,",
+				"          LATITUDE as decimal(9,6),",
+				"          LONGITUDE as decimal(9,6),",
+				"          LOCATION as string,",
+				"          FILENAME as string,",
+				"          LOADDATE as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceSTGCHICAGO",
+				"source(output(",
+				"          RESTAURANT_NAME as string,",
+				"          INSPECTION_TYPE as string,",
+				"          INSPECTION_DATE as date,",
+				"          INSPECTION_SCORE as decimal(38,0),",
+				"          STREET_NUMBER as decimal(10,0),",
+				"          STREET_NAME as string,",
+				"          STREET_DIRECTION as string,",
+				"          STREET_TYPE as string,",
+				"          STREET_UNIT as string,",
+				"          STREET_ADDRESS as string,",
+				"          ZIP_CODE as string,",
+				"          VIOLATION_NUMBER as decimal(38,0),",
+				"          VIOLATION_CODE as string,",
+				"          VIOLATION_DESCRIPTION as string,",
+				"          VIOLATION_POINTS as decimal(38,0),",
+				"          VIOLATION_DETAIL as string,",
+				"          VIOLATION_MEMO as string,",
+				"          INSPECTION_MONTH as string,",
+				"          INSPECTION_YEAR as string,",
+				"          LATITUDE as decimal(9,6),",
+				"          LONGITUDE as decimal(9,6),",
+				"          FILENAME as string,",
+				"          LOADDATE as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourcestgDALLAS",
+				"source(output(",
+				"          VIOLATION_SK as decimal(10,0),",
+				"          VIOLATION_CODE as string,",
+				"          VIOLATION_DESCRIPTION as string,",
+				"          SOURCE_SYSTEM as string,",
+				"          DI_JOB_ID as string,",
+				"          DI_JOB_DT as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceDIMViolation",
+				"source(output(",
+				"          MAXCOMMENTS_SK as decimal(10,0)",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     query: 'SELECT NVL(MAX(COMMENTS_SK),0) AS MAXCOMMENTS_SK FROM DW.BRIDGE_VIOLATION_COMMENTS',",
+				"     format: 'query') ~> sourceMaxSK",
+				"source(output(",
+				"          INSPECTION_SK as decimal(10,0),",
+				"          DATE_SK as decimal(10,0),",
+				"          BUSINESS_SK as decimal(10,0),",
+				"          INSPECTION_TYPE_SK as decimal(10,0),",
+				"          LOCATION_SK as decimal(10,0),",
+				"          RISK_SK as decimal(10,0),",
+				"          RESULT_SK as decimal(10,0),",
+				"          FACILITY_TYPE_SK as decimal(10,0),",
+				"          INSPECTION_ID as decimal(10,0),",
+				"          LICENSE_NUMBER as decimal(10,0),",
+				"          INSPECTION_SCORE as decimal(38,0),",
+				"          VIOLATION_POINTS as decimal(38,0),",
+				"          SOURCE_SYSTEM as string,",
+				"          DI_JOB_ID as string,",
+				"          DI_JOB_DT as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceFACT",
+				"sourceSTGCHICAGO, sourceDIMViolation join(VIOLATIONS == VIOLATION_DESCRIPTION,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinDIMVIOLATION",
+				"joinDIMVIOLATION, sourceFACT join(sourceSTGCHICAGO@INSPECTION_ID == sourceFACT@INSPECTION_ID,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinFACT",
+				"joinFACT select(mapColumn(",
+				"          VIOLATION_SK,",
+				"          SOURCE_SYSTEM = sourceDIMViolation@SOURCE_SYSTEM,",
+				"          INSPECTION_SK,",
+				"          DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK,",
+				"          RISK_SK,",
+				"          RESULT_SK,",
+				"          FACILITY_TYPE_SK,",
+				"          COMMENTS",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> select1",
+				"sourcestgDALLAS, sourceDIMViolation join(sourcestgDALLAS@VIOLATION_DESCRIPTION == sourceDIMViolation@VIOLATION_DESCRIPTION,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinToDIMViolation",
+				"joinToDIMViolation, sourceFACT join(ERROR_FUNCTION('') == sourceFACT@INSPECTION_SCORE,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinToFact"
+			]
+		}
+	}
+}

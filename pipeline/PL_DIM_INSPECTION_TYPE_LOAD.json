@@ -53,6 +53,58 @@
 					},
 					"traceLevel": "Fine"
 				}
+			},
+			{
+				"name": "DF_INSPECTION_TYPE_LOAD_copy1",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "DF_DIM_INSPECTION_TYPE",
+						"type": "DataFlowReference",
+						"parameters": {
+							"JobID": {
+								"value": "'@{pipeline().RunId}'",
+								"type": "Expression"
+							}
+						},
+						"datasetParameters": {
+							"sourceStgChicago": {
+								"SchemaName": "STG",
+								"TableName": "STG_CHICAGO"
+							},
+							"sourceStgDallas": {
+								"SchemaName": "STG",
+								"TableName": "STG_DALLAS"
+							},
+							"sourceDimMaxSK": {
+								"SchemaName": "DW",
+								"TableName": "DIM_INSPECTION_TYPE"
+							},
+							"sourceDim": {
+								"SchemaName": "DW",
+								"TableName": "DIM_INSPECTION_TYPE"
+							},
+							"sinkSF": {
+								"SchemaName": "DW",
+								"TableName": "DIM_INSPECTION_TYPE"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
 			}
 		],
 		"folder": {

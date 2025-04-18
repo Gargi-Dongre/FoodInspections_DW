@@ -1,6 +1,9 @@
 {
 	"name": "DF_DIM_RESULT",
 	"properties": {
+		"folder": {
+			"name": "Dimensions"
+		},
 		"type": "MappingDataFlow",
 		"typeProperties": {
 			"sources": [

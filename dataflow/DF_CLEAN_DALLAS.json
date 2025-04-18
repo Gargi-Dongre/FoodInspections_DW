@@ -13,6 +13,13 @@
 						"type": "DatasetReference"
 					},
 					"name": "sourceBronze"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceMaxID"
 				}
 			],
 			"sinks": [
@@ -96,6 +103,12 @@
 				},
 				{
 					"name": "derivedColumnMeta"
+				},
+				{
+					"name": "surrogateKey"
+				},
+				{
+					"name": "joinCross"
 				}
 			],
 			"scriptLines": [
@@ -222,6 +235,13 @@
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     ignoreNoFilesFound: false) ~> sourceBronze",
+				"source(output(",
+				"          MAXID as decimal(10,0)",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     query: 'SELECT NVL(MAX(InspectionID),0) AS MAXID FROM STG.STG_DALLAS',",
+				"     format: 'query') ~> sourceMaxID",
 				"selectDescriptions unpivot(output(",
 				"          Violation_Description_Number as string,",
 				"          Violation_Description as string",
@@ -718,8 +738,17 @@
 				"     dummy = first(Violation_Number)) ~> aggregateDupes",
 				"derivedColumns derive(Latitude = iif(isNull(Latitude),0.000000,toFloat(Latitude)),",
 				"          Longitude = iif(isNull(Longitude),0.000000,toFloat(Longitude))) ~> derivedColumnLocation",
-				"aggregateDupes derive(FileName = $FName,",
-				"          LoadDate = currentUTC()) ~> derivedColumnMeta",
+				"surrogateKey derive(FileName = $FName,",
+				"          LoadDate = currentUTC(),",
+				"          InspectionID = MAXID + Row_number) ~> derivedColumnMeta",
+				"joinCross keyGenerate(output(Row_number as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L) ~> surrogateKey",
+				"aggregateDupes, sourceMaxID join(1==1,",
+				"     joinType:'cross',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinCross",
 				"derivedColumnMeta sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     format: 'parquet',",
@@ -750,7 +779,8 @@
 				"          LATITUDE = Latitude,",
 				"          LONGITUDE = Longitude,",
 				"          FILENAME = FileName,",
-				"          LOADDATE = LoadDate",
+				"          LOADDATE = LoadDate,",
+				"          INSPECTIONID = InspectionID",
 				"     ),",
 				"     partitionBy('hash', 1)) ~> sinkPQ"
 			]

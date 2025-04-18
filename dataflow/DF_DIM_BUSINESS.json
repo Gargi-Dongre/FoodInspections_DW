@@ -36,7 +36,15 @@
 					"name": "sourceDim"
 				}
 			],
-			"sinks": [],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sinkSF"
+				}
+			],
 			"transformations": [
 				{
 					"name": "selectColumns"
@@ -64,9 +72,21 @@
 				},
 				{
 					"name": "filterExisting"
+				},
+				{
+					"name": "surrogateKey"
+				},
+				{
+					"name": "derivedColumnMeta"
+				},
+				{
+					"name": "selectRename"
 				}
 			],
 			"scriptLines": [
+				"parameters{",
+				"     JobID as string ('Default')",
+				"}",
 				"source(output(",
 				"          INSPECTION_ID as decimal(10,0),",
 				"          DBA_NAME as string,",
@@ -122,20 +142,17 @@
 				"     validateSchema: false,",
 				"     format: 'table') ~> sourceStgDallas",
 				"source(output(",
-				"          MAXRESULTSK as decimal(10,0)",
+				"          MAXBUSINESSSK as decimal(10,0)",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
-				"     query: 'SELECT NVL(MAX(BUSINESS_SK),0) AS MAXResultSK FROM DW.DIM_BUSINESS',",
+				"     query: 'SELECT NVL(MAX(BUSINESS_SK),0) AS MAXBusinessSK FROM DW.DIM_BUSINESS',",
 				"     format: 'query') ~> sourceDimMaxSK",
 				"source(output(",
 				"          BUSINESS_SK as decimal(10,0),",
 				"          DBA_NAME as string,",
 				"          AKA_NAME as string,",
 				"          SOURCE_SYSTEM as string,",
-				"          START_DATE as date,",
-				"          END_DATE as date,",
-				"          IS_CURRENT as decimal(2,0),",
 				"          DI_JOB_ID as string,",
 				"          DI_JOB_DT as date",
 				"     ),",
@@ -163,7 +180,7 @@
 				"     broadcast: 'auto')~> SourceSk",
 				"SourceSk aggregate(groupBy(DBA_NAME,",
 				"          AKA_NAME,",
-				"          MAXRESULTSK,",
+				"          MAXBUSINESSSK,",
 				"          SOURCE_SYSTEM),",
 				"     count_row = count(1)) ~> aggregate",
 				"aggregate, sourceDim join(aggregate@DBA_NAME == sourceDim@DBA_NAME",
@@ -174,7 +191,44 @@
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> joinToTarget",
 				"selectColumns derive(SOURCE_SYSTEM = 'CHICAGO') ~> derivedColumnSSystem",
-				"joinToTarget filter(isNull(sourceDim@DBA_NAME) && isNull(sourceDim@AKA_NAME) && isNull(sourceDim@SOURCE_SYSTEM)) ~> filterExisting"
+				"joinToTarget filter(isNull(sourceDim@DBA_NAME) && isNull(sourceDim@AKA_NAME) && isNull(sourceDim@SOURCE_SYSTEM)) ~> filterExisting",
+				"selectRename keyGenerate(output(Row_Number as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L) ~> surrogateKey",
+				"surrogateKey derive(BUSINESS_SK = MAXBUSINESSSK + Row_Number,",
+				"          DI_JOB_ID = $JobID,",
+				"          DI_JOB_DT = currentDate()) ~> derivedColumnMeta",
+				"filterExisting select(mapColumn(",
+				"          DBANAME = aggregate@DBA_NAME,",
+				"          AKANAME = aggregate@AKA_NAME,",
+				"          MAXBUSINESSSK,",
+				"          SOURCESYSTEM = aggregate@SOURCE_SYSTEM,",
+				"          count_row,",
+				"          BUSINESS_SK,",
+				"          DBA_NAME = sourceDim@DBA_NAME,",
+				"          AKA_NAME = sourceDim@AKA_NAME,",
+				"          SOURCE_SYSTEM = sourceDim@SOURCE_SYSTEM,",
+				"          DI_JOB_ID,",
+				"          DI_JOB_DT",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> selectRename",
+				"derivedColumnMeta sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     stageInsert: true,",
+				"     mapColumn(",
+				"          BUSINESS_SK,",
+				"          DBA_NAME = DBANAME,",
+				"          AKA_NAME = AKANAME,",
+				"          SOURCE_SYSTEM = SOURCESYSTEM,",
+				"          DI_JOB_ID,",
+				"          DI_JOB_DT",
+				"     )) ~> sinkSF"
 			]
 		}
 	}

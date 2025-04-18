@@ -1,5 +1,5 @@
 {
-	"name": "dataflow1",
+	"name": "DF_BRIDGE_LOAD",
 	"properties": {
 		"type": "MappingDataFlow",
 		"typeProperties": {

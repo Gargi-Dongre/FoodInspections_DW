@@ -79,6 +79,9 @@
 				}
 			}
 		],
+		"folder": {
+			"name": "Fact"
+		},
 		"annotations": []
 	}
 }

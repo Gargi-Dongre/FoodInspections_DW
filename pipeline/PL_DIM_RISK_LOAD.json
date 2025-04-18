@@ -1,9 +1,9 @@
 {
-	"name": "pipeline1",
+	"name": "PL_DIM_RISK_LOAD",
 	"properties": {
 		"activities": [
 			{
-				"name": "PL_DIM_RISK_LOAD",
+				"name": "DF_DIM_RISK_LOAD",
 				"type": "ExecuteDataFlow",
 				"dependsOn": [],
 				"policy": {

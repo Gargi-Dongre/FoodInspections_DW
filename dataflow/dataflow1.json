@@ -40,7 +40,15 @@
 					"name": "sourceFACT"
 				}
 			],
-			"sinks": [],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sink1"
+				}
+			],
 			"transformations": [
 				{
 					"name": "joinDIMVIOLATION"
@@ -56,9 +64,33 @@
 				},
 				{
 					"name": "joinToFact"
+				},
+				{
+					"name": "filter1"
+				},
+				{
+					"name": "filter2"
+				},
+				{
+					"name": "select2"
+				},
+				{
+					"name": "union1"
+				},
+				{
+					"name": "join1"
+				},
+				{
+					"name": "surrogateKey1"
+				},
+				{
+					"name": "derivedColumn1"
 				}
 			],
 			"scriptLines": [
+				"parameters{",
+				"     JOB_ID as string ('DEFAULT')",
+				"}",
 				"source(output(",
 				"          INSPECTION_ID as decimal(10,0),",
 				"          DBA_NAME as string,",
@@ -108,7 +140,8 @@
 				"          LATITUDE as decimal(9,6),",
 				"          LONGITUDE as decimal(9,6),",
 				"          FILENAME as string,",
-				"          LOADDATE as timestamp",
+				"          LOADDATE as timestamp,",
+				"          INSPECTIONID as decimal(10,0)",
 				"     ),",
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
@@ -161,7 +194,7 @@
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> joinFACT",
-				"joinFACT select(mapColumn(",
+				"filter1 select(mapColumn(",
 				"          VIOLATION_SK,",
 				"          SOURCE_SYSTEM = sourceDIMViolation@SOURCE_SYSTEM,",
 				"          INSPECTION_SK,",
@@ -181,11 +214,64 @@
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> joinToDIMViolation",
-				"joinToDIMViolation, sourceFACT join(ERROR_FUNCTION('') == sourceFACT@INSPECTION_SCORE,",
+				"joinToDIMViolation, sourceFACT join(INSPECTIONID == INSPECTION_ID,",
 				"     joinType:'inner',",
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
-				"     broadcast: 'auto')~> joinToFact"
+				"     broadcast: 'auto')~> joinToFact",
+				"joinFACT filter(sourceDIMViolation@SOURCE_SYSTEM =='CHICAGO' && sourceFACT@SOURCE_SYSTEM == 'CHICAGO') ~> filter1",
+				"joinToFact filter(sourceDIMViolation@SOURCE_SYSTEM =='DALLAS' && sourceFACT@SOURCE_SYSTEM == 'DALLAS') ~> filter2",
+				"filter2 select(mapColumn(",
+				"          COMMENTS = VIOLATION_MEMO,",
+				"          VIOLATION_SK,",
+				"          SOURCE_SYSTEM = sourceDIMViolation@SOURCE_SYSTEM,",
+				"          INSPECTION_SK,",
+				"          DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK,",
+				"          RISK_SK,",
+				"          RESULT_SK,",
+				"          FACILITY_TYPE_SK",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> select2",
+				"select1, select2 union(byName: true)~> union1",
+				"union1, sourceMaxSK join(1==1,",
+				"     joinType:'cross',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> join1",
+				"join1 keyGenerate(output(ROW_NUMBER as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L) ~> surrogateKey1",
+				"surrogateKey1 derive(COMMENTS_SK = MAXCOMMENTS_SK + ROW_NUMBER,",
+				"          DI_JOB_ID = $JOB_ID,",
+				"          DI_JOB_DT = currentDate()) ~> derivedColumn1",
+				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     stageInsert: true,",
+				"     mapColumn(",
+				"          VIOLATION_SK,",
+				"          SOURCE_SYSTEM,",
+				"          INSPECTION_SK,",
+				"          DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK,",
+				"          RISK_SK,",
+				"          RESULT_SK,",
+				"          FACILITY_TYPE_SK,",
+				"          COMMENTS,",
+				"          COMMENTS_SK,",
+				"          DI_JOB_ID,",
+				"          DI_JOB_DT",
+				"     )) ~> sink1"
 			]
 		}
 	}

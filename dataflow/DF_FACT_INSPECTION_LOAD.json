@@ -147,6 +147,12 @@
 				},
 				{
 					"name": "derivedColumnMeta"
+				},
+				{
+					"name": "filterChicago"
+				},
+				{
+					"name": "filterDallas"
 				}
 			],
 			"scriptLines": [
@@ -362,7 +368,7 @@
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> joinFacilityType",
-				"joinFacilityType select(mapColumn(",
+				"filterChicago select(mapColumn(",
 				"          DATE_SK,",
 				"          BUSINESS_SK,",
 				"          INSPECTION_TYPE_SK,",
@@ -401,7 +407,7 @@
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> joinToLocation",
-				"joinToLocation select(mapColumn(",
+				"filterDallas select(mapColumn(",
 				"          DATE_SK,",
 				"          BUSINESS_SK,",
 				"          INSPECTION_TYPE_SK,",
@@ -429,6 +435,8 @@
 				"surrogateKey derive(INSPECTION_SK = MAXINSPECTIONSK + Row_number,",
 				"          DI_JOB_ID = $JobID,",
 				"          DI_JOB_DT = currentDate()) ~> derivedColumnMeta",
+				"joinFacilityType filter(sourceLocationDim@SOURCE_SYSTEM == 'CHICAGO' && sourceInspectionTypeDim@SOURCE_SYSTEM == 'CHICAGO' && sourceBusinessDim@SOURCE_SYSTEM == 'CHICAGO') ~> filterChicago",
+				"joinToLocation filter(sourceBusinessDim@SOURCE_SYSTEM == 'DALLAS' && sourceInspectionTypeDim@SOURCE_SYSTEM == 'DALLAS' && sourceLocationDim@SOURCE_SYSTEM == 'DALLAS') ~> filterDallas",
 				"derivedColumnMeta sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     deletable:false,",

@@ -19,15 +19,19 @@
 						"referenceName": "DF_CLEAN_DALLAS",
 						"type": "DataFlowReference",
 						"parameters": {
-							"FName": "'Dallas_2025-present_quoted.tsv'",
-							"Silver_FName": "'Dallas_2025-present.parquet'"
+							"FName": "'Dallas_2021-2022_quoted.tsv'",
+							"Silver_FName": "'Dallas_2021-2022.parquet'"
 						},
 						"datasetParameters": {
 							"sourceBronze": {
-								"FileName": "Dallas_2025-present_quoted.tsv"
+								"FileName": "Dallas_2021-2022_quoted.tsv"
+							},
+							"sourceMaxID": {
+								"SchemaName": "STG",
+								"TableName": "STG_DALLAS"
 							},
 							"sinkPQ": {
-								"FileName": "Dallas_2025-present.parquet"
+								"FileName": "Dallas_2021-2022.parquet"
 							}
 						}
 					},

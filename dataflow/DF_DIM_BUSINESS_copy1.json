@@ -1,0 +1,268 @@
+{
+	"name": "DF_DIM_BUSINESS_copy1",
+	"properties": {
+		"folder": {
+			"name": "Dimensions"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceStgChicago"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceStgDallas"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceDimMaxSK"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceDim"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sinkSF"
+				}
+			],
+			"transformations": [
+				{
+					"name": "selectColumns"
+				},
+				{
+					"name": "selectColumnsDallas"
+				},
+				{
+					"name": "derivedColumn"
+				},
+				{
+					"name": "union"
+				},
+				{
+					"name": "SourceSk"
+				},
+				{
+					"name": "aggregate"
+				},
+				{
+					"name": "joinToTarget"
+				},
+				{
+					"name": "derivedColumnSSystem"
+				},
+				{
+					"name": "filterExisting"
+				},
+				{
+					"name": "surrogateKey"
+				},
+				{
+					"name": "derivedColumnMeta"
+				},
+				{
+					"name": "selectRename"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     JobID as string ('Default')",
+				"}",
+				"source(output(",
+				"          INSPECTION_ID as decimal(10,0),",
+				"          DBA_NAME as string,",
+				"          AKA_NAME as string,",
+				"          LICENSE_NO as decimal(10,0),",
+				"          FACILITY_TYPE as string,",
+				"          RISK as string,",
+				"          ADDRESS as string,",
+				"          CITY as string,",
+				"          STATE as string,",
+				"          ZIP as decimal(38,0),",
+				"          INSPECTION_DATE as date,",
+				"          INSPECTION_TYPE as string,",
+				"          RESULTS as string,",
+				"          VIOLATION_CODE as decimal(38,0),",
+				"          VIOLATIONS as string,",
+				"          COMMENTS as string,",
+				"          LATITUDE as decimal(9,6),",
+				"          LONGITUDE as decimal(9,6),",
+				"          LOCATION as string,",
+				"          FILENAME as string,",
+				"          LOADDATE as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceStgChicago",
+				"source(output(",
+				"          RESTAURANT_NAME as string,",
+				"          INSPECTION_TYPE as string,",
+				"          INSPECTION_DATE as date,",
+				"          INSPECTION_SCORE as decimal(38,0),",
+				"          STREET_NUMBER as decimal(10,0),",
+				"          STREET_NAME as string,",
+				"          STREET_DIRECTION as string,",
+				"          STREET_TYPE as string,",
+				"          STREET_UNIT as string,",
+				"          STREET_ADDRESS as string,",
+				"          ZIP_CODE as string,",
+				"          VIOLATION_NUMBER as decimal(38,0),",
+				"          VIOLATION_CODE as string,",
+				"          VIOLATION_DESCRIPTION as string,",
+				"          VIOLATION_POINTS as decimal(38,0),",
+				"          VIOLATION_DETAIL as string,",
+				"          VIOLATION_MEMO as string,",
+				"          INSPECTION_MONTH as string,",
+				"          INSPECTION_YEAR as string,",
+				"          LATITUDE as decimal(9,6),",
+				"          LONGITUDE as decimal(9,6),",
+				"          FILENAME as string,",
+				"          LOADDATE as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceStgDallas",
+				"source(output(",
+				"          MAXLOCATIONSK as decimal(10,0)",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     query: 'SELECT NVL(MAX(LOCATION_SK),0) AS MAXLocationSK FROM DW.DIM_LOCATION',",
+				"     format: 'query') ~> sourceDimMaxSK",
+				"source(output(",
+				"          LOCATION_SK as decimal(10,0),",
+				"          ADDRESS as string,",
+				"          ZIP_CODE as string,",
+				"          CITY as string,",
+				"          STATE as string,",
+				"          LATITUDE as decimal(9,6),",
+				"          LONGITUDE as decimal(9,6),",
+				"          SOURCE_SYSTEM as string,",
+				"          DI_JOB_ID as string,",
+				"          DI_JOB_DT as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceDim",
+				"sourceStgChicago select(mapColumn(",
+				"          ADDRESS,",
+				"          CITY,",
+				"          STATE,",
+				"          ZIP,",
+				"          LATITUDE,",
+				"          LONGITUDE",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> selectColumns",
+				"sourceStgDallas select(mapColumn(",
+				"          ADDRESS = STREET_ADDRESS,",
+				"          ZIP = ZIP_CODE,",
+				"          LATITUDE,",
+				"          LONGITUDE",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> selectColumnsDallas",
+				"selectColumnsDallas derive(CITY = 'DALLAS',",
+				"          STATE = 'TX',",
+				"          SOURCE_SYSTEM = 'DALLAS') ~> derivedColumn",
+				"derivedColumnSSystem, derivedColumn union(byName: true)~> union",
+				"union, sourceDimMaxSK join(1==1,",
+				"     joinType:'cross',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> SourceSk",
+				"SourceSk aggregate(groupBy(ADDRESS,",
+				"          CITY,",
+				"          STATE,",
+				"          ZIP,",
+				"          LATITUDE,",
+				"          LONGITUDE,",
+				"          SOURCE_SYSTEM,",
+				"          MAXLOCATIONSK),",
+				"     count_row = count(1)) ~> aggregate",
+				"aggregate, sourceDim join(aggregate@ADDRESS == sourceDim@ADDRESS",
+				"     && aggregate@CITY == sourceDim@CITY",
+				"     && aggregate@STATE == sourceDim@STATE",
+				"     && ZIP == ZIP_CODE",
+				"     && aggregate@LATITUDE == sourceDim@LATITUDE",
+				"     && aggregate@LONGITUDE == sourceDim@LONGITUDE",
+				"     && aggregate@SOURCE_SYSTEM == sourceDim@SOURCE_SYSTEM,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinToTarget",
+				"selectColumns derive(SOURCE_SYSTEM = 'CHICAGO',",
+				"          ZIP = toString(ZIP)) ~> derivedColumnSSystem",
+				"joinToTarget filter(isNull(sourceDim@ADDRESS) && isNull(sourceDim@CITY) && isNull(sourceDim@STATE) && isNull(ZIP_CODE) && isNull(sourceDim@LATITUDE) && isNull(sourceDim@LONGITUDE)&& isNull(sourceDim@SOURCE_SYSTEM)) ~> filterExisting",
+				"selectRename keyGenerate(output(Row_Number as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L) ~> surrogateKey",
+				"surrogateKey derive(LOCATION_SK = MAXLOCATIONSK + Row_Number,",
+				"          DI_JOB_ID = $JobID,",
+				"          DI_JOB_DT = currentDate()) ~> derivedColumnMeta",
+				"filterExisting select(mapColumn(",
+				"          Temp_ADDRESS = aggregate@ADDRESS,",
+				"          Temp_CITY = aggregate@CITY,",
+				"          Temp_STATE = aggregate@STATE,",
+				"          ZIP,",
+				"          Temp_LATITUDE = aggregate@LATITUDE,",
+				"          Temp_LONGITUDE = aggregate@LONGITUDE,",
+				"          SOURCESYSTEM = aggregate@SOURCE_SYSTEM,",
+				"          MAXLOCATIONSK,",
+				"          count_row,",
+				"          LOCATION_SK,",
+				"          ADDRESS = sourceDim@ADDRESS,",
+				"          ZIP_CODE,",
+				"          CITY = sourceDim@CITY,",
+				"          STATE = sourceDim@STATE,",
+				"          LATITUDE = sourceDim@LATITUDE,",
+				"          LONGITUDE = sourceDim@LONGITUDE,",
+				"          SOURCE_SYSTEM = sourceDim@SOURCE_SYSTEM,",
+				"          DI_JOB_ID,",
+				"          DI_JOB_DT",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> selectRename",
+				"derivedColumnMeta sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     stageInsert: true,",
+				"     mapColumn(",
+				"          LOCATION_SK,",
+				"          ADDRESS = Temp_ADDRESS,",
+				"          ZIP_CODE = ZIP,",
+				"          CITY = Temp_CITY,",
+				"          STATE = Temp_STATE,",
+				"          LATITUDE = Temp_LATITUDE,",
+				"          LONGITUDE = Temp_LONGITUDE,",
+				"          SOURCE_SYSTEM = SOURCESYSTEM,",
+				"          DI_JOB_ID,",
+				"          DI_JOB_DT",
+				"     )) ~> sinkSF"
+			]
+		}
+	}
+}

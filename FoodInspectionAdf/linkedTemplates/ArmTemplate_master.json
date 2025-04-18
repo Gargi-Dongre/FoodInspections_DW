@@ -1,0 +1,77 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "FoodInspectionAdf"
+		},
+		"Snowflake_LS_password": {
+			"type": "secureString",
+			"metadata": "Secure string for 'password' of 'Snowflake_LS'"
+		},
+		"LS_AzureBlobStorage_sasUri": {
+			"type": "secureString",
+			"metadata": "Secure string for 'sasUri' of 'LS_AzureBlobStorage'"
+		},
+		"LS_AzureDataLakeStorage_properties_typeProperties_url": {
+			"type": "string",
+			"defaultValue": "https://foodinspection.dfs.core.windows.net/"
+		},
+		"Snowflake_LS_properties_typeProperties_database": {
+			"type": "string",
+			"defaultValue": "FoodIns"
+		},
+		"Snowflake_LS_properties_typeProperties_role": {
+			"type": "string",
+			"defaultValue": "FoodRole"
+		},
+		"containerUri": {
+			"type": "string",
+			"metadata": "URI to storage account containing linked ARM templates"
+		},
+		"containerSasToken": {
+			"type": "string",
+			"metadata": "Sas token to storage account containing linked ARM templates"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "FoodInspectionAdf_ArmTemplate_0",
+			"type": "Microsoft.Resources/deployments",
+			"apiVersion": "2024-03-01",
+			"properties": {
+				"mode": "incremental",
+				"templateLink": {
+					"uri": "[concat(parameters('containerUri'), '/ArmTemplate_0.json', parameters('containerSasToken'))]",
+					"contentVersion": "1.0.0.0"
+				},
+				"parameters": {
+					"factoryName": {
+						"value": "[parameters('factoryName')]"
+					},
+					"Snowflake_LS_password": {
+						"value": "[parameters('Snowflake_LS_password')]"
+					},
+					"LS_AzureBlobStorage_sasUri": {
+						"value": "[parameters('LS_AzureBlobStorage_sasUri')]"
+					},
+					"LS_AzureDataLakeStorage_properties_typeProperties_url": {
+						"value": "[parameters('LS_AzureDataLakeStorage_properties_typeProperties_url')]"
+					},
+					"Snowflake_LS_properties_typeProperties_database": {
+						"value": "[parameters('Snowflake_LS_properties_typeProperties_database')]"
+					},
+					"Snowflake_LS_properties_typeProperties_role": {
+						"value": "[parameters('Snowflake_LS_properties_typeProperties_role')]"
+					}
+				}
+			},
+			"dependsOn": []
+		}
+	]
+}

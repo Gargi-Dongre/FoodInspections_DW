@@ -1,0 +1,63 @@
+{
+	"name": "PL_DIM_VIOLATION_LOAD",
+	"properties": {
+		"activities": [
+			{
+				"name": "DF_DIM_VIOLATION_LOAD",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "DF_DIM_VIOLATION",
+						"type": "DataFlowReference",
+						"parameters": {
+							"JobID": {
+								"value": "'@{pipeline().RunId}'",
+								"type": "Expression"
+							}
+						},
+						"datasetParameters": {
+							"sourceStgChicago": {
+								"SchemaName": "STG",
+								"TableName": "STG_CHICAGO"
+							},
+							"sourceStgDallas": {
+								"SchemaName": "STG",
+								"TableName": "STG_DALLAS"
+							},
+							"sourceDimMaxSK": {
+								"SchemaName": "DW",
+								"TableName": "DIM_VIOLATION"
+							},
+							"sourceDim": {
+								"SchemaName": "DW",
+								"TableName": "DIM_VIOLATION"
+							},
+							"sinkSF": {
+								"SchemaName": "DW",
+								"TableName": "DIM_VIOLATION"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"folder": {
+			"name": "Dimension"
+		},
+		"annotations": []
+	}
+}

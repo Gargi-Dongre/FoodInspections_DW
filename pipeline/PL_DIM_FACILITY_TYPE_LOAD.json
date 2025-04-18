@@ -1,0 +1,94 @@
+{
+	"name": "PL_DIM_FACILITY_TYPE_LOAD",
+	"properties": {
+		"activities": [
+			{
+				"name": "DF_FACILITY_TYPE_LOAD",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "DF_DIM_FACILITY_TYPE",
+						"type": "DataFlowReference",
+						"parameters": {
+							"JobID": {
+								"value": "'@{pipeline().RunId}'",
+								"type": "Expression"
+							}
+						},
+						"datasetParameters": {
+							"sourceStage": {
+								"SchemaName": "STG",
+								"TableName": "STG_CHICAGO"
+							},
+							"sourceDimResultMaxID": {
+								"SchemaName": "DW",
+								"TableName": "DIM_FACILITY_TYPE"
+							},
+							"sourceDim": {
+								"SchemaName": "DW",
+								"TableName": "DIM_FACILITY_TYPE"
+							},
+							"sinkSF": {
+								"SchemaName": "DW",
+								"TableName": "DIM_FACILITY_TYPE"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			},
+			{
+				"name": "ScriptAddNA",
+				"type": "Script",
+				"state": "Inactive",
+				"onInactiveMarkAs": "Succeeded",
+				"dependsOn": [
+					{
+						"activity": "DF_FACILITY_TYPE_LOAD",
+						"dependencyConditions": [
+							"Succeeded"
+						]
+					}
+				],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"linkedServiceName": {
+					"referenceName": "Snowflake_LS",
+					"type": "LinkedServiceReference"
+				},
+				"typeProperties": {
+					"scripts": [
+						{
+							"type": "Query",
+							"text": "INSERT INTO DW.DIM_FACILITY_TYPE VALUES(-1,'Not Applicable','Manual Load','2025-04-18')"
+						}
+					],
+					"scriptBlockExecutionTimeout": "02:00:00"
+				}
+			}
+		],
+		"folder": {
+			"name": "Dimension"
+		},
+		"annotations": []
+	}
+}

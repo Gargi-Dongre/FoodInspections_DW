@@ -1,6 +1,9 @@
 {
 	"name": "DF_CLEAN_DALLAS",
 	"properties": {
+		"folder": {
+			"name": "Staging"
+		},
 		"type": "MappingDataFlow",
 		"typeProperties": {
 			"sources": [

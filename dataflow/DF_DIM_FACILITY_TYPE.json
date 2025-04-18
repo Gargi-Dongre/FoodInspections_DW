@@ -1,0 +1,167 @@
+{
+	"name": "DF_DIM_FACILITY_TYPE",
+	"properties": {
+		"folder": {
+			"name": "Dimensions"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceStage"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceDimResultMaxID"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceDim"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sinkSF"
+				}
+			],
+			"transformations": [
+				{
+					"name": "sourceSk"
+				},
+				{
+					"name": "aggregateRisk"
+				},
+				{
+					"name": "selectFacilityType"
+				},
+				{
+					"name": "joinTarget"
+				},
+				{
+					"name": "filterExisting"
+				},
+				{
+					"name": "surrogateKey"
+				},
+				{
+					"name": "derivedColumns"
+				},
+				{
+					"name": "selectRename"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     JobID as string ('Default')",
+				"}",
+				"source(output(",
+				"          INSPECTION_ID as decimal(10,0),",
+				"          DBA_NAME as string,",
+				"          AKA_NAME as string,",
+				"          LICENSE_NO as decimal(10,0),",
+				"          FACILITY_TYPE as string,",
+				"          RISK as string,",
+				"          ADDRESS as string,",
+				"          CITY as string,",
+				"          STATE as string,",
+				"          ZIP as decimal(38,0),",
+				"          INSPECTION_DATE as date,",
+				"          INSPECTION_TYPE as string,",
+				"          RESULTS as string,",
+				"          VIOLATION_CODE as decimal(38,0),",
+				"          VIOLATIONS as string,",
+				"          COMMENTS as string,",
+				"          LATITUDE as decimal(9,6),",
+				"          LONGITUDE as decimal(9,6),",
+				"          LOCATION as string,",
+				"          FILENAME as string,",
+				"          LOADDATE as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceStage",
+				"source(output(",
+				"          MAXFACILITYSK as decimal(10,0)",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     query: 'SELECT NVL(MAX(FACILITY_TYPE_SK),0) AS MAXFACILITYSK FROM DW.DIM_FACILITY_TYPE',",
+				"     format: 'query') ~> sourceDimResultMaxID",
+				"source(output(",
+				"          FACILITY_TYPE_SK as decimal(10,0),",
+				"          FACILITY_TYPE as string,",
+				"          DI_JOB_ID as string,",
+				"          DI_JOB_DT as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceDim",
+				"sourceStage, sourceDimResultMaxID join(1==1,",
+				"     joinType:'cross',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> sourceSk",
+				"selectFacilityType aggregate(groupBy(FACILITY_TYPE,",
+				"          MAXFACILITYSK),",
+				"     count_row = count(1)) ~> aggregateRisk",
+				"sourceSk select(mapColumn(",
+				"          MAXFACILITYSK,",
+				"          FACILITY_TYPE",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> selectFacilityType",
+				"aggregateRisk, sourceDim join(aggregateRisk@FACILITY_TYPE == sourceDim@FACILITY_TYPE,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinTarget",
+				"joinTarget filter(isNull(sourceDim@FACILITY_TYPE)) ~> filterExisting",
+				"selectRename keyGenerate(output(Row_Number as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L) ~> surrogateKey",
+				"surrogateKey derive(FACILITY_TYPE_SK = MAXFACILITYSK + Row_Number,",
+				"          DI_JOB_ID = $JobID,",
+				"          DI_JOB_DT = currentDate()) ~> derivedColumns",
+				"filterExisting select(mapColumn(",
+				"          FACILITYTYPE = aggregateRisk@FACILITY_TYPE,",
+				"          MAXFACILITYSK,",
+				"          count_row,",
+				"          FACILITY_TYPE_SK,",
+				"          FACILITY_TYPE = sourceDim@FACILITY_TYPE,",
+				"          DI_JOB_ID,",
+				"          DI_JOB_DT",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> selectRename",
+				"derivedColumns sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     stageInsert: true,",
+				"     mapColumn(",
+				"          FACILITY_TYPE_SK,",
+				"          FACILITY_TYPE = FACILITYTYPE,",
+				"          DI_JOB_ID,",
+				"          DI_JOB_DT",
+				"     )) ~> sinkSF"
+			]
+		}
+	}
+}

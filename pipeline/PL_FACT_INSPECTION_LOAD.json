@@ -1,0 +1,87 @@
+{
+	"name": "PL_FACT_INSPECTION_LOAD",
+	"properties": {
+		"activities": [
+			{
+				"name": "DF_FACT_INSPECTION_LOAD",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "DF_FACT_INSPECTION_LOAD",
+						"type": "DataFlowReference",
+						"parameters": {
+							"JobID": {
+								"value": "'@{pipeline().RunId}'",
+								"type": "Expression"
+							}
+						},
+						"datasetParameters": {
+							"sourceStgChicago": {
+								"SchemaName": "STG",
+								"TableName": "STG_CHICAGO"
+							},
+							"sourceStgDallas": {
+								"SchemaName": "STG",
+								"TableName": "STG_DALLAS"
+							},
+							"sourceDateDim": {
+								"SchemaName": "DW",
+								"TableName": "DIM_DATE"
+							},
+							"sourceBusinessDim": {
+								"SchemaName": "DW",
+								"TableName": "DIM_BUSINESS"
+							},
+							"sourceInspectionTypeDim": {
+								"SchemaName": "DW",
+								"TableName": "DIM_INSPECTION_TYPE"
+							},
+							"sourceLocationDim": {
+								"SchemaName": "DW",
+								"TableName": "DIM_LOCATION"
+							},
+							"sourceRiskDim": {
+								"SchemaName": "DW",
+								"TableName": "DIM_RISK"
+							},
+							"sourceResultDim": {
+								"SchemaName": "DW",
+								"TableName": "DIM_RESULT"
+							},
+							"sourceFacilityTypeDim": {
+								"SchemaName": "DW",
+								"TableName": "DIM_FACILITY_TYPE"
+							},
+							"sourceMaxInspectionSK": {
+								"SchemaName": "DW",
+								"TableName": "FACT_INSPECTION"
+							},
+							"sinkSF": {
+								"SchemaName": "DW",
+								"TableName": "FACT_INSPECTION"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"folder": {
+			"name": "Fact"
+		},
+		"annotations": []
+	}
+}

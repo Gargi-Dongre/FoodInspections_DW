@@ -49,6 +49,21 @@
 				},
 				{
 					"name": "union"
+				},
+				{
+					"name": "SourceSk"
+				},
+				{
+					"name": "aggregate"
+				},
+				{
+					"name": "joinToTarget"
+				},
+				{
+					"name": "derivedColumnSSystem"
+				},
+				{
+					"name": "filterExisting"
 				}
 			],
 			"scriptLines": [
@@ -138,8 +153,28 @@
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> selectColumnsDallas",
-				"selectColumnsDallas derive(AKA_NAME = 'NA') ~> derivedColumn",
-				"selectColumns, derivedColumn union(byName: true)~> union"
+				"selectColumnsDallas derive(AKA_NAME = 'NA',",
+				"          SOURCE_SYSTEM = 'DALLAS') ~> derivedColumn",
+				"derivedColumnSSystem, derivedColumn union(byName: true)~> union",
+				"union, sourceDimMaxSK join(1==1,",
+				"     joinType:'cross',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> SourceSk",
+				"SourceSk aggregate(groupBy(DBA_NAME,",
+				"          AKA_NAME,",
+				"          MAXRESULTSK,",
+				"          SOURCE_SYSTEM),",
+				"     count_row = count(1)) ~> aggregate",
+				"aggregate, sourceDim join(aggregate@DBA_NAME == sourceDim@DBA_NAME",
+				"     && aggregate@AKA_NAME == sourceDim@AKA_NAME",
+				"     && aggregate@SOURCE_SYSTEM == sourceDim@SOURCE_SYSTEM,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinToTarget",
+				"selectColumns derive(SOURCE_SYSTEM = 'CHICAGO') ~> derivedColumnSSystem",
+				"joinToTarget filter(isNull(sourceDim@DBA_NAME) && isNull(sourceDim@AKA_NAME) && isNull(sourceDim@SOURCE_SYSTEM)) ~> filterExisting"
 			]
 		}
 	}

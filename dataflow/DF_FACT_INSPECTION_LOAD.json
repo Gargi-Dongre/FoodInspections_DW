@@ -79,7 +79,59 @@
 				}
 			],
 			"sinks": [],
-			"transformations": [],
+			"transformations": [
+				{
+					"name": "joinDateDim"
+				},
+				{
+					"name": "joinBusinessDim"
+				},
+				{
+					"name": "joinInspectionType"
+				},
+				{
+					"name": "selectDate"
+				},
+				{
+					"name": "joinLocation"
+				},
+				{
+					"name": "joinRisk"
+				},
+				{
+					"name": "joinResult"
+				},
+				{
+					"name": "joinFacilityType"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "derivedColumn"
+				},
+				{
+					"name": "joinToDateDim"
+				},
+				{
+					"name": "joinToBusinessDim"
+				},
+				{
+					"name": "joinToInspectionType"
+				},
+				{
+					"name": "joinToLocation"
+				},
+				{
+					"name": "select2"
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "union"
+				}
+			],
 			"scriptLines": [
 				"source(output(",
 				"          INSPECTION_ID as decimal(10,0),",
@@ -223,7 +275,129 @@
 				"     allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     query: 'SELECT NVL(MAX(INSPECTION_SK),0) AS MAXInspectionSK FROM DW.FACT_INSPECTION',",
-				"     format: 'query') ~> sourceMaxInspectionSK"
+				"     format: 'query') ~> sourceMaxInspectionSK",
+				"sourceStgChicago, sourceDateDim join(toDate(toString(INSPECTION_DATE),'yyyy-MM-dd') == toDate(toString(DT),'yyyy-MM-dd'),",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinDateDim",
+				"selectDate, sourceBusinessDim join(selectDate@DBA_NAME == sourceBusinessDim@DBA_NAME",
+				"     && selectDate@AKA_NAME == sourceBusinessDim@AKA_NAME,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinBusinessDim",
+				"joinBusinessDim, sourceInspectionTypeDim join(selectDate@INSPECTION_TYPE == sourceInspectionTypeDim@INSPECTION_TYPE,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinInspectionType",
+				"joinDateDim select(mapColumn(",
+				"          INSPECTION_ID,",
+				"          DBA_NAME,",
+				"          AKA_NAME,",
+				"          LICENSE_NO,",
+				"          FACILITY_TYPE,",
+				"          RISK,",
+				"          ADDRESS,",
+				"          CITY,",
+				"          STATE,",
+				"          ZIP,",
+				"          INSPECTION_DATE,",
+				"          INSPECTION_TYPE,",
+				"          RESULTS,",
+				"          VIOLATION_CODE,",
+				"          VIOLATIONS,",
+				"          COMMENTS,",
+				"          LATITUDE,",
+				"          LONGITUDE,",
+				"          LOCATION,",
+				"          DT,",
+				"          DATE_SK",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> selectDate",
+				"joinInspectionType, sourceLocationDim join(selectDate@ADDRESS == sourceLocationDim@ADDRESS",
+				"     && selectDate@CITY == sourceLocationDim@CITY",
+				"     && selectDate@STATE == sourceLocationDim@STATE",
+				"     && toString(ZIP) == ZIP_CODE",
+				"     && selectDate@LATITUDE == sourceLocationDim@LATITUDE",
+				"     && selectDate@LONGITUDE == sourceLocationDim@LONGITUDE,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinLocation",
+				"joinLocation, sourceRiskDim join(RISK == RISK_CATEGORY,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinRisk",
+				"joinRisk, sourceResultDim join(RESULTS == RESULT,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinResult",
+				"joinResult, sourceFacilityTypeDim join(selectDate@FACILITY_TYPE == sourceFacilityTypeDim@FACILITY_TYPE,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinFacilityType",
+				"joinFacilityType select(mapColumn(",
+				"          DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK,",
+				"          RISK_SK,",
+				"          RESULT_SK,",
+				"          FACILITY_TYPE_SK,",
+				"          INSPECTION_ID,",
+				"          LICENSE_NUMBER = LICENSE_NO",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> select1",
+				"select1 derive(INSPECTION_SCORE = -1,",
+				"          VIOLATION_POINTS = '-1',",
+				"          SOURCE_SYSTEM = 'CHICAGO') ~> derivedColumn",
+				"sourceStgDallas, sourceDateDim join(INSPECTION_DATE == DT,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinToDateDim",
+				"joinToDateDim, sourceBusinessDim join(RESTAURANT_NAME == DBA_NAME,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinToBusinessDim",
+				"joinToBusinessDim, sourceInspectionTypeDim join(sourceStgDallas@INSPECTION_TYPE == sourceInspectionTypeDim@INSPECTION_TYPE,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinToInspectionType",
+				"joinToInspectionType, sourceLocationDim join(STREET_ADDRESS == ADDRESS",
+				"     && sourceStgDallas@ZIP_CODE == sourceLocationDim@ZIP_CODE",
+				"     && sourceStgDallas@LATITUDE == sourceLocationDim@LATITUDE",
+				"     && sourceStgDallas@LONGITUDE == sourceLocationDim@LONGITUDE,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinToLocation",
+				"joinToLocation select(mapColumn(",
+				"          DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK,",
+				"          INSPECTION_SCORE,",
+				"          VIOLATION_POINTS",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> select2",
+				"select2 derive(RISK_SK = -1,",
+				"          RESULT_SK = -1,",
+				"          FACILITY_TYPE_SK = -1,",
+				"          INSPECTION_ID = -1,",
+				"          LICENSE_NUMBER = -1,",
+				"          SOURCE_SYSTEM = 'DALLAS') ~> derivedColumn1",
+				"derivedColumn, derivedColumn1 union(byName: true)~> union"
 			]
 		}
 	}

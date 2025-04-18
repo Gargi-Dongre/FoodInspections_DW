@@ -78,7 +78,15 @@
 					"name": "sourceMaxInspectionSK"
 				}
 			],
-			"sinks": [],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sinkSF"
+				}
+			],
 			"transformations": [
 				{
 					"name": "joinDateDim"
@@ -130,9 +138,21 @@
 				},
 				{
 					"name": "union"
+				},
+				{
+					"name": "joinMaxID"
+				},
+				{
+					"name": "surrogateKey"
+				},
+				{
+					"name": "derivedColumnMeta"
 				}
 			],
 			"scriptLines": [
+				"parameters{",
+				"     JobID as string ('Default')",
+				"}",
 				"source(output(",
 				"          INSPECTION_ID as decimal(10,0),",
 				"          DBA_NAME as string,",
@@ -397,7 +417,43 @@
 				"          INSPECTION_ID = -1,",
 				"          LICENSE_NUMBER = -1,",
 				"          SOURCE_SYSTEM = 'DALLAS') ~> derivedColumn1",
-				"derivedColumn, derivedColumn1 union(byName: true)~> union"
+				"derivedColumn, derivedColumn1 union(byName: true)~> union",
+				"union, sourceMaxInspectionSK join(1==1,",
+				"     joinType:'cross',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinMaxID",
+				"joinMaxID keyGenerate(output(Row_number as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L) ~> surrogateKey",
+				"surrogateKey derive(INSPECTION_SK = MAXINSPECTIONSK + Row_number,",
+				"          DI_JOB_ID = $JobID,",
+				"          DI_JOB_DT = currentDate()) ~> derivedColumnMeta",
+				"derivedColumnMeta sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     stageInsert: true,",
+				"     mapColumn(",
+				"          DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK,",
+				"          RISK_SK,",
+				"          RESULT_SK,",
+				"          FACILITY_TYPE_SK,",
+				"          INSPECTION_ID,",
+				"          LICENSE_NUMBER,",
+				"          INSPECTION_SCORE,",
+				"          VIOLATION_POINTS,",
+				"          SOURCE_SYSTEM,",
+				"          INSPECTION_SK,",
+				"          DI_JOB_ID,",
+				"          DI_JOB_DT",
+				"     )) ~> sinkSF"
 			]
 		}
 	}

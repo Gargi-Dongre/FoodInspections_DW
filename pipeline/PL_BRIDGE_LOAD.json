@@ -1,0 +1,64 @@
+{
+	"name": "PL_BRIDGE_LOAD",
+	"properties": {
+		"activities": [
+			{
+				"name": "DF_BRIDGE_LOAD",
+				"type": "ExecuteDataFlow",
+				"dependsOn": [],
+				"policy": {
+					"timeout": "0.12:00:00",
+					"retry": 0,
+					"retryIntervalInSeconds": 30,
+					"secureOutput": false,
+					"secureInput": false
+				},
+				"userProperties": [],
+				"typeProperties": {
+					"dataflow": {
+						"referenceName": "DF_BRIDGE_LOAD",
+						"type": "DataFlowReference",
+						"parameters": {
+							"JOB_ID": {
+								"value": "'@{pipeline().RunId}'",
+								"type": "Expression"
+							}
+						},
+						"datasetParameters": {
+							"sourceSTGCHICAGO": {
+								"SchemaName": "STG",
+								"TableName": "STG_CHICAGO"
+							},
+							"sourcestgDALLAS": {
+								"SchemaName": "STG",
+								"TableName": "STG_DALLAS"
+							},
+							"sourceDIMViolation": {
+								"SchemaName": "DW",
+								"TableName": "DIM_VIOLATION"
+							},
+							"sourceMaxSK": {
+								"SchemaName": "DW",
+								"TableName": "BRIDGE_VIOLATION_COMMENTS"
+							},
+							"sourceFACT": {
+								"SchemaName": "DW",
+								"TableName": "FACT_INSPECTION"
+							},
+							"sink1": {
+								"SchemaName": "DW",
+								"TableName": "BRIDGE_VIOLATION_COMMENTS"
+							}
+						}
+					},
+					"compute": {
+						"coreCount": 8,
+						"computeType": "General"
+					},
+					"traceLevel": "Fine"
+				}
+			}
+		],
+		"annotations": []
+	}
+}

@@ -156,6 +156,9 @@
 				},
 				{
 					"name": "aggregateDupes"
+				},
+				{
+					"name": "select3"
 				}
 			],
 			"scriptLines": [
@@ -452,6 +455,21 @@
 				"          FACILITY_TYPE_SK,",
 				"          LICENSE_NUMBER),",
 				"     count_row = count(1)) ~> aggregateDupes",
+				"aggregateDupes select(mapColumn(",
+				"          SOURCE_SYSTEM,",
+				"          DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK,",
+				"          INSPECTION_SCORE,",
+				"          INSPECTION_ID,",
+				"          RISK_SK,",
+				"          RESULT_SK,",
+				"          FACILITY_TYPE_SK,",
+				"          LICENSE_NUMBER",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> select3",
 				"derivedColumnMeta sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     deletable:false,",

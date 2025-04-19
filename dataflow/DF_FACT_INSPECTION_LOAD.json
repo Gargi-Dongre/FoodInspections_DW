@@ -429,7 +429,7 @@
 				"          FACILITY_TYPE_SK = -1,",
 				"          LICENSE_NUMBER = -1,",
 				"          SOURCE_SYSTEM = 'DALLAS') ~> derivedColumn1",
-				"derivedColumn, aggregateDupes union(byName: true)~> union",
+				"derivedColumn, select3 union(byName: true)~> union",
 				"union, sourceMaxInspectionSK join(1==1,",
 				"     joinType:'cross',",
 				"     matchType:'exact',",

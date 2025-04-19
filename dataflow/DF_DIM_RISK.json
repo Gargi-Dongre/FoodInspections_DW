@@ -1,0 +1,153 @@
+{
+	"name": "DF_DIM_RISK",
+	"properties": {
+		"folder": {
+			"name": "Dimensions"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceStage"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceDimRiskMaxID"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceDim"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sinkSF"
+				}
+			],
+			"transformations": [
+				{
+					"name": "sourceSk"
+				},
+				{
+					"name": "aggregateRisk"
+				},
+				{
+					"name": "selectRisk"
+				},
+				{
+					"name": "joinTarget"
+				},
+				{
+					"name": "filterExisting"
+				},
+				{
+					"name": "surrogateKey"
+				},
+				{
+					"name": "derivedColumns"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     JobID as string ('Default')",
+				"}",
+				"source(output(",
+				"          INSPECTION_ID as decimal(10,0),",
+				"          DBA_NAME as string,",
+				"          AKA_NAME as string,",
+				"          LICENSE_NO as decimal(10,0),",
+				"          FACILITY_TYPE as string,",
+				"          RISK as string,",
+				"          ADDRESS as string,",
+				"          CITY as string,",
+				"          STATE as string,",
+				"          ZIP as decimal(38,0),",
+				"          INSPECTION_DATE as date,",
+				"          INSPECTION_TYPE as string,",
+				"          RESULTS as string,",
+				"          VIOLATION_CODE as decimal(38,0),",
+				"          VIOLATIONS as string,",
+				"          COMMENTS as string,",
+				"          LATITUDE as decimal(9,6),",
+				"          LONGITUDE as decimal(9,6),",
+				"          LOCATION as string,",
+				"          FILENAME as string,",
+				"          LOADDATE as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceStage",
+				"source(output(",
+				"          MAXRISKSK as decimal(10,0)",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     query: 'SELECT NVL(MAX(RISK_SK),0) AS MAXRiskSK FROM DW.DIM_RISK',",
+				"     format: 'query') ~> sourceDimRiskMaxID",
+				"source(output(",
+				"          RISK_SK as decimal(10,0),",
+				"          RISK_CATEGORY as string,",
+				"          DI_JOB_ID as string,",
+				"          DI_JOB_DT as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceDim",
+				"sourceStage, sourceDimRiskMaxID join(1==1,",
+				"     joinType:'cross',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> sourceSk",
+				"selectRisk aggregate(groupBy(RISK,",
+				"          MAXRISKSK),",
+				"     count_row = count(1)) ~> aggregateRisk",
+				"sourceSk select(mapColumn(",
+				"          RISK,",
+				"          MAXRISKSK",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> selectRisk",
+				"aggregateRisk, sourceDim join(RISK == RISK_CATEGORY,",
+				"     joinType:'left',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinTarget",
+				"joinTarget filter(isNull(RISK_CATEGORY)) ~> filterExisting",
+				"filterExisting keyGenerate(output(Row_Number as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L) ~> surrogateKey",
+				"surrogateKey derive(RISK_SK = MAXRISKSK + Row_Number,",
+				"          DI_JOB_ID = $JobID,",
+				"          DI_JOB_DT = currentDate()) ~> derivedColumns",
+				"derivedColumns sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     stageInsert: true,",
+				"     mapColumn(",
+				"          RISK_SK,",
+				"          RISK_CATEGORY = RISK,",
+				"          DI_JOB_ID,",
+				"          DI_JOB_DT",
+				"     )) ~> sinkSF"
+			]
+		}
+	}
+}

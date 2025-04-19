@@ -26,6 +26,10 @@
 							"sourceBronze": {
 								"FileName": "Dallas_2025-present_quoted.tsv"
 							},
+							"sourceMaxID": {
+								"SchemaName": "STG",
+								"TableName": "STG_DALLAS"
+							},
 							"sinkPQ": {
 								"FileName": "Dallas_2025-present.parquet"
 							}
@@ -105,6 +109,9 @@
 				]
 			}
 		],
+		"folder": {
+			"name": "Staging"
+		},
 		"annotations": []
 	}
 }

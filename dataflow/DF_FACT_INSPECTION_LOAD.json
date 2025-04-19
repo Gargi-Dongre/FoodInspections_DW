@@ -1,0 +1,562 @@
+{
+	"name": "DF_FACT_INSPECTION_LOAD",
+	"properties": {
+		"folder": {
+			"name": "Fact"
+		},
+		"type": "MappingDataFlow",
+		"typeProperties": {
+			"sources": [
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceStgChicago"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceStgDallas"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceDateDim"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceBusinessDim"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceInspectionTypeDim"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceLocationDim"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceRiskDim"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceResultDim"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceFacilityTypeDim"
+				},
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sourceMaxInspectionSK"
+				}
+			],
+			"sinks": [
+				{
+					"dataset": {
+						"referenceName": "DS_Snowflake",
+						"type": "DatasetReference"
+					},
+					"name": "sinkSF"
+				}
+			],
+			"transformations": [
+				{
+					"name": "joinDateDim"
+				},
+				{
+					"name": "joinBusinessDim"
+				},
+				{
+					"name": "joinInspectionType"
+				},
+				{
+					"name": "selectDate"
+				},
+				{
+					"name": "joinLocation"
+				},
+				{
+					"name": "joinRisk"
+				},
+				{
+					"name": "joinResult"
+				},
+				{
+					"name": "joinFacilityType"
+				},
+				{
+					"name": "select1"
+				},
+				{
+					"name": "derivedColumn"
+				},
+				{
+					"name": "joinToDateDim"
+				},
+				{
+					"name": "joinToBusinessDim"
+				},
+				{
+					"name": "joinToInspectionType"
+				},
+				{
+					"name": "joinToLocation"
+				},
+				{
+					"name": "select2"
+				},
+				{
+					"name": "derivedColumn1"
+				},
+				{
+					"name": "union"
+				},
+				{
+					"name": "joinMaxID"
+				},
+				{
+					"name": "surrogateKey"
+				},
+				{
+					"name": "derivedColumnMeta"
+				},
+				{
+					"name": "filterChicago"
+				},
+				{
+					"name": "filterDallas"
+				},
+				{
+					"name": "aggregateDupes"
+				},
+				{
+					"name": "select3"
+				},
+				{
+					"name": "aggregateDupesChicago"
+				},
+				{
+					"name": "select4"
+				},
+				{
+					"name": "aggregateSum"
+				},
+				{
+					"name": "Replace1"
+				},
+				{
+					"name": "selectRequired"
+				}
+			],
+			"scriptLines": [
+				"parameters{",
+				"     JobID as string ('Default')",
+				"}",
+				"source(output(",
+				"          INSPECTION_ID as decimal(10,0),",
+				"          DBA_NAME as string,",
+				"          AKA_NAME as string,",
+				"          LICENSE_NO as decimal(10,0),",
+				"          FACILITY_TYPE as string,",
+				"          RISK as string,",
+				"          ADDRESS as string,",
+				"          CITY as string,",
+				"          STATE as string,",
+				"          ZIP as decimal(38,0),",
+				"          INSPECTION_DATE as date,",
+				"          INSPECTION_TYPE as string,",
+				"          RESULTS as string,",
+				"          VIOLATION_CODE as decimal(38,0),",
+				"          VIOLATIONS as string,",
+				"          COMMENTS as string,",
+				"          LATITUDE as decimal(9,6),",
+				"          LONGITUDE as decimal(9,6),",
+				"          LOCATION as string,",
+				"          FILENAME as string,",
+				"          LOADDATE as timestamp",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceStgChicago",
+				"source(output(",
+				"          RESTAURANT_NAME as string,",
+				"          INSPECTION_TYPE as string,",
+				"          INSPECTION_DATE as date,",
+				"          INSPECTION_SCORE as decimal(38,0),",
+				"          STREET_NUMBER as decimal(10,0),",
+				"          STREET_NAME as string,",
+				"          STREET_DIRECTION as string,",
+				"          STREET_TYPE as string,",
+				"          STREET_UNIT as string,",
+				"          STREET_ADDRESS as string,",
+				"          ZIP_CODE as string,",
+				"          VIOLATION_NUMBER as decimal(38,0),",
+				"          VIOLATION_CODE as string,",
+				"          VIOLATION_DESCRIPTION as string,",
+				"          VIOLATION_POINTS as decimal(38,0),",
+				"          VIOLATION_DETAIL as string,",
+				"          VIOLATION_MEMO as string,",
+				"          INSPECTION_MONTH as string,",
+				"          INSPECTION_YEAR as string,",
+				"          LATITUDE as decimal(9,6),",
+				"          LONGITUDE as decimal(9,6),",
+				"          FILENAME as string,",
+				"          LOADDATE as timestamp,",
+				"          INSPECTIONID as decimal(10,0)",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceStgDallas",
+				"source(output(",
+				"          DT as date,",
+				"          ABRV_DAY_NAME as string,",
+				"          MONTH_NAME as string,",
+				"          START_DAY_OF_MONTH as date,",
+				"          END_DAY_OF_MONTH as date,",
+				"          QUATER_NUM as decimal(2,0),",
+				"          DAY_OF_WEEK as decimal(2,0),",
+				"          IS_WEEKEND as decimal(1,0),",
+				"          YEAR as decimal(4,0),",
+				"          MONTH_NUM as decimal(2,0),",
+				"          DAY_NUM as decimal(2,0),",
+				"          DATE_SK as decimal(10,0),",
+				"          DI_JOB_ID as string,",
+				"          DI_JOB_DT as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceDateDim",
+				"source(output(",
+				"          BUSINESS_SK as decimal(10,0),",
+				"          DBA_NAME as string,",
+				"          AKA_NAME as string,",
+				"          SOURCE_SYSTEM as string,",
+				"          DI_JOB_ID as string,",
+				"          DI_JOB_DT as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceBusinessDim",
+				"source(output(",
+				"          INSPECTION_TYPE_SK as decimal(10,0),",
+				"          INSPECTION_TYPE as string,",
+				"          SOURCE_SYSTEM as string,",
+				"          DI_JOB_ID as string,",
+				"          DI_JOB_DT as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceInspectionTypeDim",
+				"source(output(",
+				"          LOCATION_SK as decimal(10,0),",
+				"          ADDRESS as string,",
+				"          ZIP_CODE as string,",
+				"          CITY as string,",
+				"          STATE as string,",
+				"          LATITUDE as decimal(9,6),",
+				"          LONGITUDE as decimal(9,6),",
+				"          SOURCE_SYSTEM as string,",
+				"          DI_JOB_ID as string,",
+				"          DI_JOB_DT as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceLocationDim",
+				"source(output(",
+				"          RISK_SK as decimal(10,0),",
+				"          RISK_CATEGORY as string,",
+				"          DI_JOB_ID as string,",
+				"          DI_JOB_DT as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceRiskDim",
+				"source(output(",
+				"          RESULT_SK as decimal(10,0),",
+				"          RESULT as string,",
+				"          DI_JOB_ID as string,",
+				"          DI_JOB_DT as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceResultDim",
+				"source(output(",
+				"          FACILITY_TYPE_SK as decimal(10,0),",
+				"          FACILITY_TYPE as string,",
+				"          DI_JOB_ID as string,",
+				"          DI_JOB_DT as date",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     format: 'table') ~> sourceFacilityTypeDim",
+				"source(output(",
+				"          MAXINSPECTIONSK as decimal(10,0)",
+				"     ),",
+				"     allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     query: 'SELECT NVL(MAX(INSPECTION_SK),0) AS MAXInspectionSK FROM DW.FACT_INSPECTION',",
+				"     format: 'query') ~> sourceMaxInspectionSK",
+				"sourceStgChicago, sourceDateDim join(toDate(toString(INSPECTION_DATE),'yyyy-MM-dd') == toDate(toString(DT),'yyyy-MM-dd'),",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinDateDim",
+				"selectDate, sourceBusinessDim join(selectDate@DBA_NAME == sourceBusinessDim@DBA_NAME",
+				"     && selectDate@AKA_NAME == sourceBusinessDim@AKA_NAME,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinBusinessDim",
+				"joinBusinessDim, sourceInspectionTypeDim join(selectDate@INSPECTION_TYPE == sourceInspectionTypeDim@INSPECTION_TYPE,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinInspectionType",
+				"joinDateDim select(mapColumn(",
+				"          INSPECTION_ID,",
+				"          DBA_NAME,",
+				"          AKA_NAME,",
+				"          LICENSE_NO,",
+				"          FACILITY_TYPE,",
+				"          RISK,",
+				"          ADDRESS,",
+				"          CITY,",
+				"          STATE,",
+				"          ZIP,",
+				"          INSPECTION_DATE,",
+				"          INSPECTION_TYPE,",
+				"          RESULTS,",
+				"          VIOLATION_CODE,",
+				"          VIOLATIONS,",
+				"          COMMENTS,",
+				"          LATITUDE,",
+				"          LONGITUDE,",
+				"          LOCATION,",
+				"          DT,",
+				"          DATE_SK",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> selectDate",
+				"joinInspectionType, sourceLocationDim join(selectDate@ADDRESS == sourceLocationDim@ADDRESS",
+				"     && selectDate@CITY == sourceLocationDim@CITY",
+				"     && selectDate@STATE == sourceLocationDim@STATE",
+				"     && toString(ZIP) == ZIP_CODE",
+				"     && selectDate@LATITUDE == sourceLocationDim@LATITUDE",
+				"     && selectDate@LONGITUDE == sourceLocationDim@LONGITUDE,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinLocation",
+				"joinLocation, sourceRiskDim join(RISK == RISK_CATEGORY,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinRisk",
+				"joinRisk, sourceResultDim join(RESULTS == RESULT,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinResult",
+				"joinResult, sourceFacilityTypeDim join(selectDate@FACILITY_TYPE == sourceFacilityTypeDim@FACILITY_TYPE,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinFacilityType",
+				"filterChicago select(mapColumn(",
+				"          DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK,",
+				"          RISK_SK,",
+				"          RESULT_SK,",
+				"          FACILITY_TYPE_SK,",
+				"          INSPECTION_ID,",
+				"          LICENSE_NUMBER = LICENSE_NO",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> select1",
+				"select4 derive(INSPECTION_SCORE = -1,",
+				"          TOTAL_VIOLATION_POINTS = -1,",
+				"          SOURCE_SYSTEM = 'CHICAGO') ~> derivedColumn",
+				"sourceStgDallas, sourceDateDim join(INSPECTION_DATE == DT,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinToDateDim",
+				"joinToDateDim, sourceBusinessDim join(RESTAURANT_NAME == DBA_NAME,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinToBusinessDim",
+				"joinToBusinessDim, sourceInspectionTypeDim join(sourceStgDallas@INSPECTION_TYPE == sourceInspectionTypeDim@INSPECTION_TYPE,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinToInspectionType",
+				"joinToInspectionType, sourceLocationDim join(STREET_ADDRESS == ADDRESS",
+				"     && sourceStgDallas@ZIP_CODE == sourceLocationDim@ZIP_CODE",
+				"     && sourceStgDallas@LATITUDE == sourceLocationDim@LATITUDE",
+				"     && sourceStgDallas@LONGITUDE == sourceLocationDim@LONGITUDE,",
+				"     joinType:'inner',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinToLocation",
+				"aggregateSum select(mapColumn(",
+				"          INSPECTIONID,",
+				"          INSPECTION_SCORE,",
+				"          DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK,",
+				"          TOTAL_VIOLATION_POINTS",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> select2",
+				"select2 derive(RISK_SK = -1,",
+				"          RESULT_SK = -1,",
+				"          FACILITY_TYPE_SK = -1,",
+				"          LICENSE_NUMBER = -1,",
+				"          SOURCE_SYSTEM = 'DALLAS') ~> derivedColumn1",
+				"derivedColumn, select3 union(byName: true)~> union",
+				"union, sourceMaxInspectionSK join(1==1,",
+				"     joinType:'cross',",
+				"     matchType:'exact',",
+				"     ignoreSpaces: false,",
+				"     broadcast: 'auto')~> joinMaxID",
+				"joinMaxID keyGenerate(output(Row_number as long),",
+				"     startAt: 1L,",
+				"     stepValue: 1L) ~> surrogateKey",
+				"surrogateKey derive(INSPECTION_SK = MAXINSPECTIONSK + Row_number,",
+				"          DI_JOB_ID = $JobID,",
+				"          DI_JOB_DT = currentDate()) ~> derivedColumnMeta",
+				"joinFacilityType filter(sourceLocationDim@SOURCE_SYSTEM == 'CHICAGO' && sourceInspectionTypeDim@SOURCE_SYSTEM == 'CHICAGO' && sourceBusinessDim@SOURCE_SYSTEM == 'CHICAGO') ~> filterChicago",
+				"joinToLocation filter(sourceBusinessDim@SOURCE_SYSTEM == 'DALLAS' && sourceInspectionTypeDim@SOURCE_SYSTEM == 'DALLAS' && sourceLocationDim@SOURCE_SYSTEM == 'DALLAS') ~> filterDallas",
+				"derivedColumn1 aggregate(groupBy(SOURCE_SYSTEM,",
+				"          INSPECTIONID,",
+				"          INSPECTION_SCORE,",
+				"          DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK,",
+				"          TOTAL_VIOLATION_POINTS,",
+				"          RISK_SK,",
+				"          RESULT_SK,",
+				"          FACILITY_TYPE_SK,",
+				"          LICENSE_NUMBER),",
+				"     count_row = count(1)) ~> aggregateDupes",
+				"aggregateDupes select(mapColumn(",
+				"          SOURCE_SYSTEM,",
+				"          INSPECTION_ID = INSPECTIONID,",
+				"          INSPECTION_SCORE,",
+				"          DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK,",
+				"          TOTAL_VIOLATION_POINTS,",
+				"          RISK_SK,",
+				"          RESULT_SK,",
+				"          FACILITY_TYPE_SK,",
+				"          LICENSE_NUMBER",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> select3",
+				"select1 aggregate(groupBy(DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK,",
+				"          RISK_SK,",
+				"          RESULT_SK,",
+				"          FACILITY_TYPE_SK,",
+				"          INSPECTION_ID,",
+				"          LICENSE_NUMBER),",
+				"     count_row = count(1)) ~> aggregateDupesChicago",
+				"aggregateDupesChicago select(mapColumn(",
+				"          DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK,",
+				"          RISK_SK,",
+				"          RESULT_SK,",
+				"          FACILITY_TYPE_SK,",
+				"          INSPECTION_ID,",
+				"          LICENSE_NUMBER",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> select4",
+				"selectRequired aggregate(groupBy(INSPECTIONID,",
+				"          INSPECTION_SCORE,",
+				"          DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK),",
+				"     TOTAL_VIOLATION_POINTS = sum(toInteger(VIOLATION_POINTS))) ~> aggregateSum",
+				"filterDallas derive(VIOLATION_POINTS = toInteger(iif(VIOLATION_POINTS == -1, 0, toInteger(VIOLATION_POINTS)))",
+				") ~> Replace1",
+				"Replace1 select(mapColumn(",
+				"          INSPECTION_SCORE,",
+				"          VIOLATION_POINTS,",
+				"          INSPECTIONID,",
+				"          DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> selectRequired",
+				"derivedColumnMeta sink(allowSchemaDrift: true,",
+				"     validateSchema: false,",
+				"     deletable:false,",
+				"     insertable:true,",
+				"     updateable:false,",
+				"     upsertable:false,",
+				"     format: 'table',",
+				"     stageInsert: true,",
+				"     mapColumn(",
+				"          DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK,",
+				"          RISK_SK,",
+				"          RESULT_SK,",
+				"          FACILITY_TYPE_SK,",
+				"          INSPECTION_ID,",
+				"          LICENSE_NUMBER,",
+				"          INSPECTION_SCORE,",
+				"          SOURCE_SYSTEM,",
+				"          INSPECTION_SK,",
+				"          TOTAL_VIOLATION_POINTS,",
+				"          DI_JOB_ID,",
+				"          DI_JOB_DT",
+				"     )) ~> sinkSF"
+			]
+		}
+	}
+}

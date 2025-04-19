@@ -1,0 +1,693 @@
+{
+	"$schema": "http://schema.management.azure.com/schemas/2015-01-01/deploymentTemplate.json#",
+	"contentVersion": "1.0.0.0",
+	"parameters": {
+		"factoryName": {
+			"type": "string",
+			"metadata": "Data Factory name",
+			"defaultValue": "FoodInspectionAdf"
+		}
+	},
+	"variables": {
+		"factoryId": "[concat('Microsoft.DataFactory/factories/', parameters('factoryName'))]"
+	},
+	"resources": [
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_DIM_BUSINESS_LOAD')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DF_DIM_BUSINESS_LOAD",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_DIM_BUSINESS",
+								"type": "DataFlowReference",
+								"parameters": {
+									"JobID": {
+										"value": "'@{pipeline().RunId}'",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"sourceStgChicago": {
+										"SchemaName": "STG",
+										"TableName": "STG_CHICAGO"
+									},
+									"sourceStgDallas": {
+										"SchemaName": "STG",
+										"TableName": "STG_DALLAS"
+									},
+									"sourceDimMaxSK": {
+										"SchemaName": "DW",
+										"TableName": "DIM_BUSINESS"
+									},
+									"sourceDim": {
+										"SchemaName": "DW",
+										"TableName": "DIM_BUSINESS"
+									},
+									"sinkSF": {
+										"SchemaName": "DW",
+										"TableName": "DIM_BUSINESS"
+									}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Dimension"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_DIM_FACILITY_TYPE_LOAD')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DF_FACILITY_TYPE_LOAD",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_DIM_FACILITY_TYPE",
+								"type": "DataFlowReference",
+								"parameters": {
+									"JobID": {
+										"value": "'@{pipeline().RunId}'",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"sourceStage": {
+										"SchemaName": "STG",
+										"TableName": "STG_CHICAGO"
+									},
+									"sourceDimResultMaxID": {
+										"SchemaName": "DW",
+										"TableName": "DIM_FACILITY_TYPE"
+									},
+									"sourceDim": {
+										"SchemaName": "DW",
+										"TableName": "DIM_FACILITY_TYPE"
+									},
+									"sinkSF": {
+										"SchemaName": "DW",
+										"TableName": "DIM_FACILITY_TYPE"
+									}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "ScriptAddNA",
+						"type": "Script",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [
+							{
+								"activity": "DF_FACILITY_TYPE_LOAD",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "Snowflake_LS",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": "INSERT INTO DW.DIM_FACILITY_TYPE VALUES(-1,'Not Applicable','Manual Load','2025-04-18')"
+								}
+							],
+							"scriptBlockExecutionTimeout": "02:00:00"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Dimension"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_DIM_INSPECTION_TYPE_LOAD')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DF_INSPECTION_TYPE_LOAD",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_DIM_INSPECTION_TYPE",
+								"type": "DataFlowReference",
+								"parameters": {
+									"JobID": {
+										"value": "'@{pipeline().RunId}'",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"sourceStgChicago": {
+										"SchemaName": "STG",
+										"TableName": "STG_CHICAGO"
+									},
+									"sourceStgDallas": {
+										"SchemaName": "STG",
+										"TableName": "STG_DALLAS"
+									},
+									"sourceDimMaxSK": {
+										"SchemaName": "DW",
+										"TableName": "DIM_INSPECTION_TYPE"
+									},
+									"sourceDim": {
+										"SchemaName": "DW",
+										"TableName": "DIM_INSPECTION_TYPE"
+									},
+									"sinkSF": {
+										"SchemaName": "DW",
+										"TableName": "DIM_INSPECTION_TYPE"
+									}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Dimension"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_DIM_LOCATION_LOAD')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DF_DIM_LOCATION_LOAD",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_DIM_LOCATION",
+								"type": "DataFlowReference",
+								"parameters": {
+									"JobID": {
+										"value": "'@{pipeline().RunId}'",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"sourceStgChicago": {
+										"SchemaName": "STG",
+										"TableName": "STG_CHICAGO"
+									},
+									"sourceStgDallas": {
+										"SchemaName": "STG",
+										"TableName": "STG_DALLAS"
+									},
+									"sourceDimMaxSK": {
+										"SchemaName": "DW",
+										"TableName": "DIM_LOCATION"
+									},
+									"sourceDim": {
+										"SchemaName": "DW",
+										"TableName": "DIM_LOCATION"
+									},
+									"sinkSF": {
+										"SchemaName": "DW",
+										"TableName": "DIM_LOCATION"
+									}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Dimension"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_DIM_RESULT_LOAD')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DF_DIM_RESULT_LOAD",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_DIM_RESULT",
+								"type": "DataFlowReference",
+								"parameters": {
+									"JobID": {
+										"value": "'@{pipeline().RunId}'",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"sourceStage": {
+										"SchemaName": "STG",
+										"TableName": "STG_CHICAGO"
+									},
+									"sourceDimResultMaxID": {
+										"SchemaName": "DW",
+										"TableName": "DIM_RESULT"
+									},
+									"sourceDim": {
+										"SchemaName": "DW",
+										"TableName": "DIM_RESULT"
+									},
+									"sinkSF": {
+										"SchemaName": "DW",
+										"TableName": "DIM_RESULT"
+									}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "ScriptAddNA",
+						"type": "Script",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [
+							{
+								"activity": "DF_DIM_RESULT_LOAD",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "Snowflake_LS",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": "INSERT INTO DW.DIM_RESULT VALUES(-1,'Not Applicable','Manual Load','2025-04-18')"
+								}
+							],
+							"scriptBlockExecutionTimeout": "02:00:00"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Dimension"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_DIM_RISK_LOAD')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DF_DIM_RISK_LOAD",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_DIM_RISK",
+								"type": "DataFlowReference",
+								"parameters": {
+									"JobID": {
+										"value": "'@{pipeline().RunId}'",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"sourceStage": {
+										"SchemaName": "STG",
+										"TableName": "STG_CHICAGO"
+									},
+									"sourceDimRiskMaxID": {
+										"SchemaName": "DW",
+										"TableName": "DIM_RISK"
+									},
+									"sourceDim": {
+										"SchemaName": "DW",
+										"TableName": "DIM_RISK"
+									},
+									"sinkSF": {
+										"SchemaName": "DW",
+										"TableName": "DIM_RISK"
+									}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					},
+					{
+						"name": "ScriptAddNA",
+						"type": "Script",
+						"state": "Inactive",
+						"onInactiveMarkAs": "Succeeded",
+						"dependsOn": [
+							{
+								"activity": "DF_DIM_RISK_LOAD",
+								"dependencyConditions": [
+									"Succeeded"
+								]
+							}
+						],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"linkedServiceName": {
+							"referenceName": "Snowflake_LS",
+							"type": "LinkedServiceReference"
+						},
+						"typeProperties": {
+							"scripts": [
+								{
+									"type": "Query",
+									"text": "INSERT INTO DW.DIM_RISK VALUES(-1,'Not Applicable','Manual Load','2025-04-18')"
+								}
+							],
+							"scriptBlockExecutionTimeout": "02:00:00"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Dimension"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_DIM_VIOLATION_LOAD')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DF_DIM_VIOLATION_LOAD",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_DIM_VIOLATION",
+								"type": "DataFlowReference",
+								"parameters": {
+									"JobID": {
+										"value": "'@{pipeline().RunId}'",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"sourceStgChicago": {
+										"SchemaName": "STG",
+										"TableName": "STG_CHICAGO"
+									},
+									"sourceStgDallas": {
+										"SchemaName": "STG",
+										"TableName": "STG_DALLAS"
+									},
+									"sourceDimMaxSK": {
+										"SchemaName": "DW",
+										"TableName": "DIM_VIOLATION"
+									},
+									"sourceDim": {
+										"SchemaName": "DW",
+										"TableName": "DIM_VIOLATION"
+									},
+									"sinkSF": {
+										"SchemaName": "DW",
+										"TableName": "DIM_VIOLATION"
+									}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Dimension"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		},
+		{
+			"name": "[concat(parameters('factoryName'), '/PL_FACT_INSPECTION_LOAD')]",
+			"type": "Microsoft.DataFactory/factories/pipelines",
+			"apiVersion": "2018-06-01",
+			"properties": {
+				"activities": [
+					{
+						"name": "DF_FACT_INSPECTION_LOAD",
+						"type": "ExecuteDataFlow",
+						"dependsOn": [],
+						"policy": {
+							"timeout": "0.12:00:00",
+							"retry": 0,
+							"retryIntervalInSeconds": 30,
+							"secureOutput": false,
+							"secureInput": false
+						},
+						"userProperties": [],
+						"typeProperties": {
+							"dataflow": {
+								"referenceName": "DF_FACT_INSPECTION_LOAD",
+								"type": "DataFlowReference",
+								"parameters": {
+									"JobID": {
+										"value": "'@{pipeline().RunId}'",
+										"type": "Expression"
+									}
+								},
+								"datasetParameters": {
+									"sourceStgChicago": {
+										"SchemaName": "STG",
+										"TableName": "STG_CHICAGO"
+									},
+									"sourceStgDallas": {
+										"SchemaName": "STG",
+										"TableName": "STG_DALLAS"
+									},
+									"sourceDateDim": {
+										"SchemaName": "DW",
+										"TableName": "DIM_DATE"
+									},
+									"sourceBusinessDim": {
+										"SchemaName": "DW",
+										"TableName": "DIM_BUSINESS"
+									},
+									"sourceInspectionTypeDim": {
+										"SchemaName": "DW",
+										"TableName": "DIM_INSPECTION_TYPE"
+									},
+									"sourceLocationDim": {
+										"SchemaName": "DW",
+										"TableName": "DIM_LOCATION"
+									},
+									"sourceRiskDim": {
+										"SchemaName": "DW",
+										"TableName": "DIM_RISK"
+									},
+									"sourceResultDim": {
+										"SchemaName": "DW",
+										"TableName": "DIM_RESULT"
+									},
+									"sourceFacilityTypeDim": {
+										"SchemaName": "DW",
+										"TableName": "DIM_FACILITY_TYPE"
+									},
+									"sourceMaxInspectionSK": {
+										"SchemaName": "DW",
+										"TableName": "FACT_INSPECTION"
+									},
+									"sinkSF": {
+										"SchemaName": "DW",
+										"TableName": "FACT_INSPECTION"
+									}
+								}
+							},
+							"staging": {},
+							"compute": {
+								"coreCount": 8,
+								"computeType": "General"
+							},
+							"traceLevel": "Fine"
+						}
+					}
+				],
+				"policy": {
+					"elapsedTimeMetric": {}
+				},
+				"folder": {
+					"name": "Fact"
+				},
+				"annotations": []
+			},
+			"dependsOn": []
+		}
+	]
+}

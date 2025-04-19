@@ -474,7 +474,7 @@
 				"     count_row = count(1)) ~> aggregateDupes",
 				"aggregateDupes select(mapColumn(",
 				"          SOURCE_SYSTEM,",
-				"          INSPECTIONID,",
+				"          INSPECTION_ID = INSPECTIONID,",
 				"          INSPECTION_SCORE,",
 				"          DATE_SK,",
 				"          BUSINESS_SK,",

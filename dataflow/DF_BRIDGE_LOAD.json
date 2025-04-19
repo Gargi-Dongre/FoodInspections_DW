@@ -88,9 +88,6 @@
 				},
 				{
 					"name": "derivedColumn1"
-				},
-				{
-					"name": "derivedColumn2"
 				}
 			],
 			"scriptLines": [
@@ -199,7 +196,7 @@
 				"     matchType:'exact',",
 				"     ignoreSpaces: false,",
 				"     broadcast: 'auto')~> joinFACT",
-				"derivedColumn2 select(mapColumn(",
+				"filter1 select(mapColumn(",
 				"          VIOLATION_SK,",
 				"          SOURCE_SYSTEM = sourceDIMViolation@SOURCE_SYSTEM,",
 				"          INSPECTION_SK,",
@@ -238,8 +235,7 @@
 				"          LOCATION_SK,",
 				"          RISK_SK,",
 				"          RESULT_SK,",
-				"          FACILITY_TYPE_SK,",
-				"          VIOLATION_POINTS",
+				"          FACILITY_TYPE_SK",
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> select2",
@@ -255,7 +251,6 @@
 				"surrogateKey1 derive(COMMENTS_SK = MAXCOMMENTS_SK + ROW_NUMBER,",
 				"          DI_JOB_ID = $JOB_ID,",
 				"          DI_JOB_DT = currentDate()) ~> derivedColumn1",
-				"filter1 derive(VIOLATION_POINTS = -1) ~> derivedColumn2",
 				"derivedColumn1 sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     deletable:false,",

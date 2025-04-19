@@ -88,6 +88,9 @@
 				},
 				{
 					"name": "derivedColumn1"
+				},
+				{
+					"name": "filterNA"
 				}
 			],
 			"scriptLines": [
@@ -250,7 +253,8 @@
 				"surrogateKey1 derive(COMMENTS_SK = MAXCOMMENTS_SK + ROW_NUMBER,",
 				"          DI_JOB_ID = $JOB_ID,",
 				"          DI_JOB_DT = currentDate()) ~> derivedColumn1",
-				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"derivedColumn1 filter(COMMENTS != 'NA') ~> filterNA",
+				"filterNA sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     deletable:false,",
 				"     insertable:true,",

@@ -1,6 +1,9 @@
 {
 	"name": "DF_BRIDGE_LOAD",
 	"properties": {
+		"folder": {
+			"name": "Bridge"
+		},
 		"type": "MappingDataFlow",
 		"typeProperties": {
 			"sources": [
@@ -85,6 +88,9 @@
 				},
 				{
 					"name": "derivedColumn1"
+				},
+				{
+					"name": "filterNoViolation"
 				}
 			],
 			"scriptLines": [
@@ -176,7 +182,6 @@
 				"          INSPECTION_ID as decimal(10,0),",
 				"          LICENSE_NUMBER as decimal(10,0),",
 				"          INSPECTION_SCORE as decimal(38,0),",
-				"          VIOLATION_POINTS as decimal(38,0),",
 				"          SOURCE_SYSTEM as string,",
 				"          DI_JOB_ID as string,",
 				"          DI_JOB_DT as date",
@@ -248,7 +253,8 @@
 				"surrogateKey1 derive(COMMENTS_SK = MAXCOMMENTS_SK + ROW_NUMBER,",
 				"          DI_JOB_ID = $JOB_ID,",
 				"          DI_JOB_DT = currentDate()) ~> derivedColumn1",
-				"derivedColumn1 sink(allowSchemaDrift: true,",
+				"derivedColumn1 filter(VIOLATION_SK != 35 && VIOLATION_SK != 158) ~> filterNoViolation",
+				"filterNoViolation sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     deletable:false,",
 				"     insertable:true,",

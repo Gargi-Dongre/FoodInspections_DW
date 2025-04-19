@@ -153,6 +153,9 @@
 				},
 				{
 					"name": "filterDallas"
+				},
+				{
+					"name": "aggregateDupes"
 				}
 			],
 			"scriptLines": [
@@ -383,7 +386,6 @@
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> select1",
 				"select1 derive(INSPECTION_SCORE = -1,",
-				"          VIOLATION_POINTS = -1,",
 				"          SOURCE_SYSTEM = 'CHICAGO') ~> derivedColumn",
 				"sourceStgDallas, sourceDateDim join(INSPECTION_DATE == DT,",
 				"     joinType:'inner',",
@@ -424,7 +426,7 @@
 				"          FACILITY_TYPE_SK = -1,",
 				"          LICENSE_NUMBER = -1,",
 				"          SOURCE_SYSTEM = 'DALLAS') ~> derivedColumn1",
-				"derivedColumn, derivedColumn1 union(byName: true)~> union",
+				"derivedColumn, aggregateDupes union(byName: true)~> union",
 				"union, sourceMaxInspectionSK join(1==1,",
 				"     joinType:'cross',",
 				"     matchType:'exact',",
@@ -438,6 +440,17 @@
 				"          DI_JOB_DT = currentDate()) ~> derivedColumnMeta",
 				"joinFacilityType filter(sourceLocationDim@SOURCE_SYSTEM == 'CHICAGO' && sourceInspectionTypeDim@SOURCE_SYSTEM == 'CHICAGO' && sourceBusinessDim@SOURCE_SYSTEM == 'CHICAGO') ~> filterChicago",
 				"joinToLocation filter(sourceBusinessDim@SOURCE_SYSTEM == 'DALLAS' && sourceInspectionTypeDim@SOURCE_SYSTEM == 'DALLAS' && sourceLocationDim@SOURCE_SYSTEM == 'DALLAS') ~> filterDallas",
+				"derivedColumn1 aggregate(groupBy(SOURCE_SYSTEM,",
+				"          DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK,",
+				"          INSPECTION_SCORE,",
+				"          INSPECTION_ID,",
+				"          RISK_SK,",
+				"          RESULT_SK,",
+				"          FACILITY_TYPE_SK,",
+				"          LICENSE_NUMBER)) ~> aggregateDupes",
 				"derivedColumnMeta sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     deletable:false,",
@@ -457,7 +470,6 @@
 				"          INSPECTION_ID,",
 				"          LICENSE_NUMBER,",
 				"          INSPECTION_SCORE,",
-				"          VIOLATION_POINTS,",
 				"          SOURCE_SYSTEM,",
 				"          INSPECTION_SK,",
 				"          DI_JOB_ID,",

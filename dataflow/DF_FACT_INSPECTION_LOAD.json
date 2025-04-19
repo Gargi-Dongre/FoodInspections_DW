@@ -162,6 +162,9 @@
 				},
 				{
 					"name": "aggregateDupesChicago"
+				},
+				{
+					"name": "select4"
 				}
 			],
 			"scriptLines": [
@@ -391,7 +394,7 @@
 				"     ),",
 				"     skipDuplicateMapInputs: false,",
 				"     skipDuplicateMapOutputs: false) ~> select1",
-				"aggregateDupesChicago derive(INSPECTION_SCORE = -1,",
+				"select4 derive(INSPECTION_SCORE = -1,",
 				"          SOURCE_SYSTEM = 'CHICAGO') ~> derivedColumn",
 				"sourceStgDallas, sourceDateDim join(INSPECTION_DATE == DT,",
 				"     joinType:'inner',",
@@ -481,7 +484,21 @@
 				"          RESULT_SK,",
 				"          FACILITY_TYPE_SK,",
 				"          INSPECTION_ID,",
-				"          LICENSE_NUMBER)) ~> aggregateDupesChicago",
+				"          LICENSE_NUMBER),",
+				"     count_row = count(1)) ~> aggregateDupesChicago",
+				"aggregateDupesChicago select(mapColumn(",
+				"          DATE_SK,",
+				"          BUSINESS_SK,",
+				"          INSPECTION_TYPE_SK,",
+				"          LOCATION_SK,",
+				"          RISK_SK,",
+				"          RESULT_SK,",
+				"          FACILITY_TYPE_SK,",
+				"          INSPECTION_ID,",
+				"          LICENSE_NUMBER",
+				"     ),",
+				"     skipDuplicateMapInputs: false,",
+				"     skipDuplicateMapOutputs: false) ~> select4",
 				"derivedColumnMeta sink(allowSchemaDrift: true,",
 				"     validateSchema: false,",
 				"     deletable:false,",

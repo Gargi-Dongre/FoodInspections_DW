@@ -1,6 +1,9 @@
 {
 	"name": "DF_BRIDGE_LOAD",
 	"properties": {
+		"folder": {
+			"name": "Bridge"
+		},
 		"type": "MappingDataFlow",
 		"typeProperties": {
 			"sources": [
